@@ -1,0 +1,173 @@
+# Exchange menu.
+#
+# One file = one menu. The file name is the menu name, so this file is opened
+# by /exp exchange-menu-name (or by /exp when it is set in settings.menu.default).
+#
+# PLACEHOLDERS
+#   {player} {player_level} {player_exp} {player_progress} {player_levels}
+#   {levels} {exp} {required_exp} {available} {tier} {max_levels}
+#   plus any %placeholderapi% placeholder when PlaceholderAPI is installed
+#
+# ITEM TYPES (type)
+#   DECORATION - background, clicks are ignored
+#   INFO       - information, refreshed automatically
+#   TIER       - exchange button; without an explicit click list it runs
+#                [exchange] + [refresh]
+#   CLOSE      - closes the menu; without an explicit click list it runs [close]
+#   CUSTOM     - behaviour is fully defined by the click list
+#
+# ACTIONS (click, open_actions, close_actions)
+#   [message] text           [broadcast] text         [close]
+#   [console] command        [player] command         [chat] text
+#   [sound] NAME[:volume[:pitch]]
+#   [refresh]                [open] menu_name
+#   [exchange] levels|id     [none]
+#
+# CONDITIONS (view_requirement, click_requirement, open_requirement)
+#   The value MUST be quoted: without quotes YAML reads "{" as a flow mapping
+#   and "!" as a tag, and the file fails to load.
+#   "{player_level} >= 10"
+#   "{player_exp} > 1000 && {levels} <= 50"
+#   '{player} == "Ney"'
+#   "!({player_level} < 5)"
+#   Supported: == != > >= < <= && || ! parentheses and quoted strings.
+#
+# SLOTS (slot / slots)
+#   slot: 21                 single slot
+#   slots: [20, 21, "22-24"] list and ranges
+#   slots: ["all"]           every slot, drawn first
+#   slots: ["empty"]         only free slots, drawn last
+#
+# OTHER ITEM FIELDS
+#   amount, name, lore, glow, custom_model_data, unbreakable,
+#   item_flags: [HIDE_ENCHANTS, HIDE_ATTRIBUTES, ...],
+#   enchantments: ["UNBREAKING:1", "LUCK:3"]  (hidden with hide_enchantments: true),
+#   skull_owner: PlayerName        (PLAYER_HEAD of a player),
+#   skull_texture: <base64|url>    (custom head texture),
+#   priority (higher is drawn later and wins the slot),
+#   refresh (redraw on menu refresh), levels (for TIER),
+#   denial_message (message when click_requirement fails)
+
+menu:
+
+  title: "&#8ce0ffExperience exchange"
+  size: 54
+
+  permission: ""            # permission to open, empty means no check
+  open_requirement: ""      # condition to open
+  denial_message: ""        # message on denial, empty means the default one
+  update_interval: 20       # auto refresh in ticks, 0 disables it
+
+  open_actions: []
+  close_actions: []
+
+items:
+
+  border:
+    type: DECORATION
+    material: GRAY_STAINED_GLASS_PANE
+    name: " "
+    priority: 0
+    slots:
+      - "0-8"
+      - "45-53"
+
+  filler:
+    type: DECORATION
+    material: BLACK_STAINED_GLASS_PANE
+    name: " "
+    priority: 0
+    slots:
+      - "empty"
+
+  info:
+    type: INFO
+    slot: 4
+    material: EXPERIENCE_BOTTLE
+    name: "&#FFD700Information"
+    lore:
+      - "❙ &fLevel: &e{player_level}"
+      - "❙ &fExperience: &e{player_exp}"
+      - "❙ &fProgress: &e{player_progress}%"
+      - ""
+      - "➤ &7Pick a bottle and click &fleft&7."
+
+  close:
+    type: CLOSE
+    slot: 49
+    material: BARRIER
+    name: "&#FF4757Close menu"
+    lore:
+      - ""
+      - "➤ &fClick to close the menu"
+      - ""
+
+  tier_1:
+    type: TIER
+    slot: 20
+    levels: 1
+    material: EXPERIENCE_BOTTLE
+    glow: true
+    name: "&fExchange &e1 &flevel"
+    lore:
+      - " &7▪ &fCosts: &e{levels} &flvl"
+      - " &7▪ &fThat is &e{required_exp} &fexperience"
+      - " &7▪ &fYour experience: &e{player_exp}"
+      - ""
+      - " {available}"
+
+  tier_5:
+    type: TIER
+    slot: 21
+    levels: 5
+    material: EXPERIENCE_BOTTLE
+    glow: true
+    name: "&fExchange &e5 &flevels"
+    lore:
+      - " &7▪ &fCosts: &e{levels} &flvl"
+      - " &7▪ &fThat is &e{required_exp} &fexperience"
+      - " &7▪ &fYour experience: &e{player_exp}"
+      - ""
+      - " {available}"
+
+  tier_10:
+    type: TIER
+    slot: 22
+    levels: 10
+    material: EXPERIENCE_BOTTLE
+    glow: true
+    name: "&fExchange &e10 &flevels"
+    lore:
+      - " &7▪ &fCosts: &e{levels} &flvl"
+      - " &7▪ &fThat is &e{required_exp} &fexperience"
+      - " &7▪ &fYour experience: &e{player_exp}"
+      - ""
+      - " {available}"
+
+  tier_25:
+    type: TIER
+    slot: 23
+    levels: 25
+    material: EXPERIENCE_BOTTLE
+    glow: true
+    name: "&fExchange &e25 &flevels"
+    lore:
+      - " &7▪ &fCosts: &e{levels} &flvl"
+      - " &7▪ &fThat is &e{required_exp} &fexperience"
+      - " &7▪ &fYour experience: &e{player_exp}"
+      - ""
+      - " {available}"
+
+  tier_50:
+    type: TIER
+    slot: 24
+    levels: 50
+    material: EXPERIENCE_BOTTLE
+    glow: true
+    name: "&fExchange &e50 &flevels"
+    lore:
+      - " &7▪ &fCosts: &e{levels} &flvl"
+      - " &7▪ &fThat is &e{required_exp} &fexperience"
+      - " &7▪ &fYour experience: &e{player_exp}"
+      - ""
+      - " {available}"

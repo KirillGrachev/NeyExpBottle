@@ -1,0 +1,187 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+
+    <modelVersion>4.0.0</modelVersion>
+
+    <groupId>eu.neydev</groupId>
+    <artifactId>neyexpbottle</artifactId>
+    <version>1.2.0</version>
+    <packaging>jar</packaging>
+
+    <name>NeyExpBottle</name>
+    <description>Обмен опыта на бутылки с опытом для Spigot/Paper</description>
+
+    <properties>
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+        <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
+
+        <!-- Байт-код Java 16: records, switch-выражения и pattern matching уже доступны,
+             а jar при этом грузится на любом сервере с Java 16+ (MC 1.17 - 1.21.x) -->
+        <maven.compiler.release>16</maven.compiler.release>
+
+        <!-- Компилируемся против САМОЙ СТАРОЙ поддерживаемой API,
+             чтобы на новых серверах не получить NoSuchMethodError -->
+        <spigot.version>1.16.5-R0.1-SNAPSHOT</spigot.version>
+        <annotations.version>24.1.0</annotations.version>
+        <placeholderapi.version>2.11.6</placeholderapi.version>
+        <junit.version>5.10.2</junit.version>
+        <mockbukkit.version>1.5.2</mockbukkit.version>
+    </properties>
+
+    <repositories>
+        <repository>
+            <id>spigot-repo</id>
+            <url>https://hub.spigotmc.org/nexus/content/repositories/snapshots/</url>
+        </repository>
+        <repository>
+            <id>placeholderapi-repo</id>
+            <url>https://repo.extendedclip.com/content/repositories/placeholderapi/</url>
+        </repository>
+    </repositories>
+
+    <dependencies>
+        <!-- Всё, что уже есть на сервере, — provided (в jar не попадает) -->
+        <dependency>
+            <groupId>org.spigotmc</groupId>
+            <artifactId>spigot-api</artifactId>
+            <version>${spigot.version}</version>
+            <scope>provided</scope>
+        </dependency>
+
+        <dependency>
+            <groupId>org.jetbrains</groupId>
+            <artifactId>annotations</artifactId>
+            <version>${annotations.version}</version>
+            <scope>provided</scope>
+        </dependency>
+
+        <!-- Опциональная интеграция: нужна только если на сервере стоит PlaceholderAPI -->
+        <dependency>
+            <groupId>me.clip</groupId>
+            <artifactId>placeholderapi</artifactId>
+            <version>${placeholderapi.version}</version>
+            <scope>provided</scope>
+        </dependency>
+
+        <dependency>
+            <groupId>org.junit.jupiter</groupId>
+            <artifactId>junit-jupiter</artifactId>
+            <version>${junit.version}</version>
+            <scope>test</scope>
+        </dependency>
+
+        <!-- Мок-сервер: позволяет поднять плагин и прогнать сквозные сценарии без Minecraft -->
+        <dependency>
+            <groupId>com.github.seeseemelk</groupId>
+            <artifactId>MockBukkit-v1.16</artifactId>
+            <version>${mockbukkit.version}</version>
+            <scope>test</scope>
+        </dependency>
+    </dependencies>
+
+    <build>
+        <finalName>${project.name}-${project.version}</finalName>
+
+        <resources>
+            <!-- version подставляется только в plugin.yml -->
+            <resource>
+                <directory>src/main/resources</directory>
+                <filtering>true</filtering>
+                <includes>
+                    <include>plugin.yml</include>
+                </includes>
+            </resource>
+            <resource>
+                <directory>src/main/resources</directory>
+                <filtering>false</filtering>
+                <excludes>
+                    <exclude>plugin.yml</exclude>
+                </excludes>
+            </resource>
+        </resources>
+
+        <plugins>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-compiler-plugin</artifactId>
+                <version>3.13.0</version>
+                <configuration>
+                    <compilerArgs>
+                        <arg>-Xlint:deprecation</arg>
+                    </compilerArgs>
+                </configuration>
+            </plugin>
+
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-surefire-plugin</artifactId>
+                <version>3.2.5</version>
+            </plugin>
+
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-jar-plugin</artifactId>
+                <version>3.4.1</version>
+            </plugin>
+
+            <!-- Покрытие кода: отчёт в target/site/jacoco, порог проверяется в CI -->
+            <plugin>
+                <groupId>org.jacoco</groupId>
+                <artifactId>jacoco-maven-plugin</artifactId>
+                <version>0.8.12</version>
+                <executions>
+                    <execution>
+                        <id>prepare-agent</id>
+                        <goals>
+                            <goal>prepare-agent</goal>
+                        </goals>
+                    </execution>
+                    <execution>
+                        <id>report</id>
+                        <phase>test</phase>
+                        <goals>
+                            <goal>report</goal>
+                        </goals>
+                    </execution>
+                    <execution>
+                        <id>check</id>
+                        <goals>
+                            <goal>check</goal>
+                        </goals>
+                        <configuration>
+                            <!--
+                              Порог держим на достигнутом уровне: падение ниже
+                              означает, что новый код пришёл без тестов.
+                              Исключены только shim-классы совместимости, которые
+                              невозможно выполнить вне реального сервера
+                              (reflection в Paper/authlib, реестр звуков 1.21.2+,
+                              хук установленного PlaceholderAPI).
+                            -->
+                            <excludes>
+                                <exclude>eu/neydev/expbottle/util/SkullUtil.class</exclude>
+                                <exclude>eu/neydev/expbottle/util/SoundUtil.class</exclude>
+                                <exclude>eu/neydev/expbottle/support/PlaceholderSupport.class</exclude>
+                                <exclude>eu/neydev/expbottle/support/PlaceholderBridge.class</exclude>
+                            </excludes>
+                            <rules>
+                                <rule>
+                                    <element>BUNDLE</element>
+                                    <limits>
+                                        <limit>
+                                            <counter>INSTRUCTION</counter>
+                                            <value>COVEREDRATIO</value>
+                                            <minimum>0.90</minimum>
+                                        </limit>
+                                    </limits>
+                                </rule>
+                            </rules>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+        </plugins>
+    </build>
+
+</project>

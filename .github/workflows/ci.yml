@@ -1,0 +1,55 @@
+name: CI
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  test-and-build:
+    name: Tests + coverage + jar
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+          cache: maven
+
+      # verify прогоняет тесты с JaCoCo и собирает jar
+      - name: Run tests with coverage and build jar
+        run: mvn -B verify
+
+      - name: Coverage summary
+        run: |
+          python3 - <<'PY'
+          import csv
+          rows = list(csv.DictReader(open('target/site/jacoco/jacoco.csv', encoding='utf-8')))
+          missed = sum(int(r['INSTRUCTION_MISSED']) for r in rows)
+          covered = sum(int(r['INSTRUCTION_COVERED']) for r in rows)
+          total = missed + covered
+          print(f"Instruction coverage: {100 * covered / total:.2f}% ({covered}/{total})")
+          print()
+          print("Worst classes:")
+          for r in sorted(rows, key=lambda r: -int(r['INSTRUCTION_MISSED']))[:10]:
+              m, c = int(r['INSTRUCTION_MISSED']), int(r['INSTRUCTION_COVERED'])
+              print(f"  {100 * c / (m + c):5.1f}%  missed={m:4d}  {r['CLASS']}")
+          PY
+
+      - name: Upload plugin jar
+        uses: actions/upload-artifact@v4
+        with:
+          name: NeyExpBottle
+          path: target/NeyExpBottle-*.jar
+
+      - name: Upload coverage report
+        uses: actions/upload-artifact@v4
+        with:
+          name: jacoco-report
+          path: target/site/jacoco

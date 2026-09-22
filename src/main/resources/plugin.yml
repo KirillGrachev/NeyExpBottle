@@ -1,0 +1,34 @@
+name: NeyExpBottle
+version: '${project.version}'
+main: eu.neydev.expbottle.NeyExpBottle
+api-version: 1.16
+author: Ney
+description: Exchange experience for bottled experience
+
+softdepend:
+  - PlaceholderAPI
+
+commands:
+  exp:
+    description: Open the exchange menu or exchange from chat
+    usage: "/exp [exchange <levels|id>|open <menu>|<menu>]"
+  neyexpbottle:
+    description: NeyExpBottle admin commands
+    usage: "/neyexpbottle <reload|give|info|menu|help>"
+    aliases:
+      - neb
+      - expbottle
+
+permissions:
+  expbottle.use:
+    description: Use experience bottles and the /exp command
+    default: true
+  expbottle.exchange:
+    description: Exchange experience for bottles
+    default: true
+  expbottle.admin:
+    description: Access to admin commands
+    default: op
+  expbottle.bypass.cooldown:
+    description: Skip the exchange cooldown
+    default: op
