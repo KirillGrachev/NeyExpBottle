@@ -2,6 +2,8 @@ package eu.neydev.expbottle.service;
 
 import eu.neydev.expbottle.NeyExpBottle;
 import eu.neydev.expbottle.config.ConfigManager;
+import eu.neydev.expbottle.gui.MenuItemFactory;
+import eu.neydev.expbottle.gui.MenuRenderer;
 import eu.neydev.expbottle.registry.BottleRegistry;
 import eu.neydev.expbottle.registry.MenuRegistry;
 import org.jetbrains.annotations.NotNull;
@@ -33,10 +35,14 @@ public class PluginServices {
     private final InventoryService inventoryService;
     private final ExperienceService experienceService;
     private final CooldownService cooldownService;
+    private final AmountSelectionService amountSelectionService;
     private final PlaceholderService placeholderService;
+    private final SkullTextureService skullTextureService;
     private final BottleTagService bottleTagService;
     private final BottleFactory bottleFactory;
     private final ExchangeService exchangeService;
+    private final MenuItemFactory menuItemFactory;
+    private final MenuRenderer menuRenderer;
     private final ActionExecutor actionExecutor;
     private final MenuService menuService;
 
@@ -55,15 +61,26 @@ public class PluginServices {
         this.inventoryService = new InventoryService(diagnosticsService);
         this.experienceService = new ExperienceService();
         this.cooldownService = new CooldownService(configManager, permissionService);
-        this.placeholderService = new PlaceholderService(configManager, experienceService, diagnosticsService);
-        this.bottleTagService = new BottleTagService(plugin, configManager);
+        this.amountSelectionService = new AmountSelectionService(configManager, diagnosticsService);
+        this.skullTextureService = new SkullTextureService(plugin.getLogger());
+        this.placeholderService = new PlaceholderService(
+                configManager, experienceService, diagnosticsService, amountSelectionService,
+                cooldownService, menuRegistry);
+        this.bottleTagService = new BottleTagService(plugin);
         this.bottleFactory = new BottleFactory(configManager, bottleTagService, placeholderService);
         this.exchangeService = new ExchangeService(
                 configManager, bottleFactory, experienceService, inventoryService,
                 permissionService, cooldownService, diagnosticsService);
 
-        this.actionExecutor = new ActionExecutor(this);
-        this.menuService = new MenuService(this);
+        this.menuItemFactory = new MenuItemFactory(configManager, placeholderService, exchangeService,
+                amountSelectionService, skullTextureService);
+        this.menuRenderer = new MenuRenderer(placeholderService, exchangeService, amountSelectionService,
+                menuItemFactory);
+        this.actionExecutor = new ActionExecutor(configManager, messageService, soundService, exchangeService,
+                placeholderService, bottleRegistry, diagnosticsService, cooldownService);
+        this.menuService = new MenuService(plugin, configManager, menuRegistry, messageService, permissionService,
+                placeholderService, actionExecutor, diagnosticsService, menuRenderer);
+        this.actionExecutor.bindMenuNavigation(menuService);
 
     }
 
@@ -140,6 +157,14 @@ public class PluginServices {
         return cooldownService;
     }
 
+    public @NotNull AmountSelectionService getAmountSelectionService() {
+        return amountSelectionService;
+    }
+
+    public @NotNull SkullTextureService getSkullTextureService() {
+        return skullTextureService;
+    }
+
     public @NotNull PlaceholderService getPlaceholderService() {
         return placeholderService;
     }
@@ -154,6 +179,14 @@ public class PluginServices {
 
     public @NotNull ExchangeService getExchangeService() {
         return exchangeService;
+    }
+
+    public @NotNull MenuItemFactory getMenuItemFactory() {
+        return menuItemFactory;
+    }
+
+    public @NotNull MenuRenderer getMenuRenderer() {
+        return menuRenderer;
     }
 
     public @NotNull ActionExecutor getActionExecutor() {

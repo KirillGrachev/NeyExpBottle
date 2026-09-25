@@ -2,6 +2,7 @@ package eu.neydev.expbottle.service;
 
 import eu.neydev.expbottle.config.PluginConfig;
 import eu.neydev.expbottle.config.type.MessageKey;
+import eu.neydev.expbottle.gui.MenuNavigation;
 import eu.neydev.expbottle.gui.action.ClickAction;
 import eu.neydev.expbottle.model.ExchangeOutcome;
 import eu.neydev.expbottle.model.ExchangeResult;
@@ -20,7 +21,7 @@ import java.util.Optional;
 /**
  * Исполнитель действий меню: {@code [message]}, {@code [console]}, {@code [sound]},
  * {@code [exchange]}, {@code [open]}, {@code [refresh]}, {@code [close]}, {@code [chat]},
- * {@code [broadcast]}, {@code [player]}, {@code [none]}.
+ * {@code [broadcast]}, {@code [player]}, {@code [back]}, {@code [none]}.
  *
  * <p>Получает {@link PluginServices} целиком намеренно: действию может понадобиться
  * любой сервис, а жёсткая ссылка на {@link MenuService} создала бы цикл
@@ -30,7 +31,6 @@ public class ActionExecutor {
 
     private static final String SOUND_SEPARATOR = ":";
 
-    private final PluginServices services;
     private final PluginConfig config;
     private final MessageService messageService;
     private final SoundService soundService;
@@ -38,17 +38,41 @@ public class ActionExecutor {
     private final PlaceholderService placeholderService;
     private final BottleRegistry bottleRegistry;
     private final DiagnosticsService diagnosticsService;
+    private final CooldownService cooldownService;
 
-    public ActionExecutor(@NotNull PluginServices services) {
+    /** Навигация по меню: подшивается композиционным корнем, см. {@link #bindMenuNavigation}. */
+    private MenuNavigation navigation;
 
-        this.services = services;
-        this.config = services.getConfigManager();
-        this.messageService = services.getMessageService();
-        this.soundService = services.getSoundService();
-        this.exchangeService = services.getExchangeService();
-        this.placeholderService = services.getPlaceholderService();
-        this.bottleRegistry = services.getBottleRegistry();
-        this.diagnosticsService = services.getDiagnosticsService();
+    public ActionExecutor(@NotNull PluginConfig config, @NotNull MessageService messageService,
+                          @NotNull SoundService soundService, @NotNull ExchangeService exchangeService,
+                          @NotNull PlaceholderService placeholderService, @NotNull BottleRegistry bottleRegistry,
+                          @NotNull DiagnosticsService diagnosticsService, @NotNull CooldownService cooldownService) {
+
+        this.config = config;
+        this.messageService = messageService;
+        this.soundService = soundService;
+        this.exchangeService = exchangeService;
+        this.placeholderService = placeholderService;
+        this.bottleRegistry = bottleRegistry;
+        this.diagnosticsService = diagnosticsService;
+        this.cooldownService = cooldownService;
+
+    }
+
+    /**
+     * Подшивает навигацию по меню. Вызывается ровно один раз композиционным
+     * корнем: {@code MenuService} сам зависит от исполнителя действий,
+     * поэтому встретить его в конструкторе исполнитель не может.
+     *
+     * @param navigation реализация навигации
+     */
+    public void bindMenuNavigation(@NotNull MenuNavigation navigation) {
+
+        if (this.navigation != null) {
+            throw new IllegalStateException("Menu navigation is already bound");
+        }
+
+        this.navigation = navigation;
 
     }
 
@@ -84,14 +108,15 @@ public class ActionExecutor {
 
             case MESSAGE -> messageService.sendText(player, argument);
             case BROADCAST -> Bukkit.broadcastMessage(HexColorUtil.color(argument));
-            case CLOSE -> services.getMenuService().close(player);
+            case CLOSE -> navigation.close(player);
             case CONSOLE -> dispatch(Bukkit.getConsoleSender(), argument);
             case PLAYER -> dispatch(player, argument);
             case CHAT -> player.chat(argument);
             case SOUND -> playSound(player, argument);
-            case REFRESH -> services.getMenuService().refresh(player);
-            case OPEN -> services.getMenuService().open(player, argument);
+            case REFRESH -> navigation.refresh(player);
+            case OPEN -> navigation.open(player, argument);
             case EXCHANGE -> handleExchange(player, argument);
+            case BACK -> navigation.openParent(player);
             case NONE -> diagnosticsService.debug("[none] - no-op action for " + player.getName());
 
         }
@@ -103,18 +128,37 @@ public class ActionExecutor {
      */
     private void handleExchange(@NotNull Player player, @NotNull String argument) {
 
-        int levels = resolveLevels(argument);
+        String[] parts = argument.trim().split("\\s+");
+
+        int levels = resolveLevels(parts[0]);
 
         if (levels <= 0) {
 
             messageService.send(player, MessageKey.INVALID_AMOUNT, Placeholders.create()
-                    .set("levels", argument)
+                    .set("levels", parts[0])
                     .set("max_levels", config.getMaxBottleLevels()));
             return;
 
         }
 
-        handleResult(player, exchangeService.exchange(player, levels));
+        int amount = 1;
+
+        if (parts.length > 1) {
+
+            amount = AmountSelectionService.parseAmount(parts[1]);
+
+            if (amount == 0) {
+
+                messageService.send(player, MessageKey.INVALID_AMOUNT, Placeholders.create()
+                        .set("levels", parts[1])
+                        .set("max_levels", ExchangeService.MAX_AMOUNT));
+                return;
+
+            }
+
+        }
+
+        handleResult(player, exchangeService.exchange(player, levels, amount));
 
     }
 
@@ -129,7 +173,8 @@ public class ActionExecutor {
         Placeholders placeholders = placeholderService.forPlayer(player)
                 .merge(placeholderService.forLevels(result.levels()))
                 .set("used_bottles", result.usedBottles())
-                .set("cooldown", services.getCooldownService().getRemainingSeconds(player));
+                .set("amount", result.amount())
+                .set("cooldown", cooldownService.getRemainingSeconds(player));
 
         if (result.isSuccess()) {
 
@@ -161,6 +206,7 @@ public class ActionExecutor {
             case ON_COOLDOWN -> messageService.send(player, MessageKey.ON_COOLDOWN, placeholders);
             case NOT_ENOUGH_LEVELS -> messageService.send(player, MessageKey.NOT_ENOUGH_LEVELS, placeholders);
             case NOT_ENOUGH_BOTTLES -> messageService.send(player, MessageKey.NOT_ENOUGH_BOTTLES, placeholders);
+            // Недостижимо: handleResult не пускает SUCCESS и CANCELLED в sendFailure
             case CANCELLED, SUCCESS -> diagnosticsService.debug("Unexpected exchange outcome: " + outcome);
 
         }

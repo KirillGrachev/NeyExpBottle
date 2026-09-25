@@ -3,6 +3,8 @@ package eu.neydev.expbottle.command;
 import eu.neydev.expbottle.NeyExpBottle;
 import eu.neydev.expbottle.config.type.MessageKey;
 import eu.neydev.expbottle.model.ExchangeResult;
+import eu.neydev.expbottle.service.AmountSelectionService;
+import eu.neydev.expbottle.service.ExchangeService;
 import eu.neydev.expbottle.registry.BottleTier;
 import eu.neydev.expbottle.util.Placeholders;
 import org.bukkit.command.Command;
@@ -45,7 +47,7 @@ public class ExpCommand extends BaseCommand {
             return true;
         }
 
-        if (!permissions().canUse(player)) {
+        if (permissions().useDenied(player)) {
             messages().send(player, MessageKey.NO_PERMISSION);
             return true;
         }
@@ -81,7 +83,7 @@ public class ExpCommand extends BaseCommand {
      */
     private void handleExchange(@NotNull Player player, String @NotNull [] args) {
 
-        if (!permissions().canExchange(player)) {
+        if (permissions().exchangeDenied(player)) {
             messages().send(player, MessageKey.NO_PERMISSION);
             return;
         }
@@ -97,7 +99,24 @@ public class ExpCommand extends BaseCommand {
             return;
         }
 
-        ExchangeResult result = services().getExchangeService().exchange(player, levels);
+        int amount = 1;
+
+        if (args.length >= 3) {
+
+            amount = AmountSelectionService.parseAmount(args[2]);
+
+            if (amount == 0) {
+
+                messages().send(player, MessageKey.INVALID_AMOUNT, Placeholders.create()
+                        .set("levels", args[2])
+                        .set("max_levels", ExchangeService.MAX_AMOUNT));
+                return;
+
+            }
+
+        }
+
+        ExchangeResult result = services().getExchangeService().exchange(player, levels, amount);
         services().getActionExecutor().handleResult(player, result);
 
     }
@@ -141,7 +160,7 @@ public class ExpCommand extends BaseCommand {
     public @NotNull List<String> onTabComplete(@NotNull CommandSender sender, @NotNull Command command,
                                                @NotNull String alias, String @NotNull [] args) {
 
-        if (!permissions().canUse(sender)) {
+        if (permissions().useDenied(sender)) {
             return List.of();
         }
 
@@ -155,6 +174,10 @@ public class ExpCommand extends BaseCommand {
 
         if (args.length == 2 && args[0].equalsIgnoreCase(SUB_EXCHANGE)) {
             return filter(services().getBottleRegistry().getIds(), args[1]);
+        }
+
+        if (args.length == 3 && args[0].equalsIgnoreCase(SUB_EXCHANGE)) {
+            return filter(List.of("1", "16", "64", "all"), args[2]);
         }
 
         if (args.length == 2 && args[0].equalsIgnoreCase(SUB_OPEN)) {

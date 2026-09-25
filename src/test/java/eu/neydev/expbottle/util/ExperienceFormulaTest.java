@@ -43,7 +43,7 @@ class ExperienceFormulaTest {
     }
 
     @Test
-    @DisplayName("toNextLevel совпадает с ванильными значениями")
+    @DisplayName("toNextLevel matches the vanilla values")
     void toNextLevelMatchesVanilla() {
 
         assertEquals(7, ExperienceFormula.toNextLevel(0));
@@ -57,18 +57,18 @@ class ExperienceFormulaTest {
     }
 
     @Test
-    @DisplayName("toNextLevel совпадает с перебором на всём поддерживаемом диапазоне")
+    @DisplayName("toNextLevel matches a brute force over the whole supported range")
     void toNextLevelMatchesBruteForce() {
 
         for (int level = 0; level <= 5000; level++) {
             assertEquals(bruteToNextLevel(level), ExperienceFormula.toNextLevel(level),
-                    "Расхождение на уровне " + level);
+                    "Mismatch at level " + level);
         }
 
     }
 
     @Test
-    @DisplayName("totalAtLevel совпадает с перебором")
+    @DisplayName("totalAtLevel matches a brute force")
     void totalAtLevelMatchesBruteForce() {
 
         assertEquals(0, ExperienceFormula.totalAtLevel(0));
@@ -80,13 +80,13 @@ class ExperienceFormulaTest {
 
         for (int level = 0; level <= 3000; level++) {
             assertEquals(bruteTotalAtLevel(level), ExperienceFormula.totalAtLevel(level),
-                    "Расхождение на уровне " + level);
+                    "Mismatch at level " + level);
         }
 
     }
 
     @Test
-    @DisplayName("levelOf возвращает точный уровень для любого опыта")
+    @DisplayName("levelOf returns the exact level for any experience")
     void levelOfMatchesBruteForce() {
 
         int level = 0;
@@ -96,7 +96,7 @@ class ExperienceFormulaTest {
         while (experience <= 2_000_000) {
 
             assertEquals(level, ExperienceFormula.levelOf(experience),
-                    "Расхождение на опыте " + experience);
+                    "Mismatch at experience " + experience);
 
             experience += bruteToNextLevel(level);
             level++;
@@ -106,7 +106,7 @@ class ExperienceFormulaTest {
     }
 
     @Test
-    @DisplayName("levelOf корректен на границах уровней")
+    @DisplayName("levelOf is correct at the level boundaries")
     void levelOfHandlesBoundaries() {
 
         for (int level = 0; level <= 1000; level++) {
@@ -114,16 +114,16 @@ class ExperienceFormulaTest {
             int start = ExperienceFormula.totalAtLevel(level);
             int next = start + ExperienceFormula.toNextLevel(level);
 
-            assertEquals(level, ExperienceFormula.levelOf(start), "Начало уровня " + level);
-            assertEquals(level, ExperienceFormula.levelOf(next - 1), "Конец уровня " + level);
-            assertEquals(level + 1, ExperienceFormula.levelOf(next), "Переход на уровень " + (level + 1));
+            assertEquals(level, ExperienceFormula.levelOf(start), "Start of level " + level);
+            assertEquals(level, ExperienceFormula.levelOf(next - 1), "End of level " + level);
+            assertEquals(level + 1, ExperienceFormula.levelOf(next), "Transition to level " + (level + 1));
 
         }
 
     }
 
     @Test
-    @DisplayName("Отрицательный опыт не ломает формулы")
+    @DisplayName("Negative experience does not break the formulas")
     void handlesNegativeExperience() {
 
         assertEquals(0, ExperienceFormula.levelOf(-100));
@@ -134,7 +134,7 @@ class ExperienceFormulaTest {
     }
 
     @Test
-    @DisplayName("progressOf всегда в диапазоне 0.0 - 1.0")
+    @DisplayName("progressOf is always within 0.0 - 1.0")
     void progressIsAlwaysInRange() {
 
         for (int experience = 0; experience <= 500_000; experience += 37) {
@@ -142,14 +142,14 @@ class ExperienceFormulaTest {
             float progress = ExperienceFormula.progressOf(experience);
 
             assertTrue(progress >= 0.0f && progress <= 1.0f,
-                    "Прогресс вне диапазона на опыте " + experience + ": " + progress);
+                    "Progress out of range at experience " + experience + ": " + progress);
 
         }
 
     }
 
     @Test
-    @DisplayName("На нулевом прогрессе полоса опыта пуста")
+    @DisplayName("At zero progress the experience bar is empty")
     void progressIsZeroAtLevelStart() {
 
         for (int level = 0; level <= 500; level++) {
@@ -159,7 +159,7 @@ class ExperienceFormulaTest {
     }
 
     @Test
-    @DisplayName("totalOf(level, progress) согласован с levelOf и progressOf")
+    @DisplayName("totalOf(level, progress) is consistent with levelOf and progressOf")
     void totalOfIsReversible() {
 
         for (int level = 0; level <= 500; level++) {
@@ -171,7 +171,7 @@ class ExperienceFormulaTest {
                 int total = ExperienceFormula.totalOf(level, progress);
 
                 assertEquals(level, ExperienceFormula.levelOf(total),
-                        "Уровень не восстановился: level=" + level + ", progress=" + progress);
+                        "The level was not restored: level=" + level + ", progress=" + progress);
 
                 // Опыт хранится целым числом, поэтому прогресс квантуется
                 // шагом в один опыт: round(progress * toNextLevel) / toNextLevel
@@ -179,7 +179,7 @@ class ExperienceFormulaTest {
                 float quantized = (float) Math.round(progress * required) / required;
 
                 assertEquals(quantized, ExperienceFormula.progressOf(total), 0.0001f,
-                        "Прогресс не восстановился: level=" + level + ", progress=" + progress);
+                        "Progress was not restored: level=" + level + ", progress=" + progress);
 
             }
 
@@ -188,7 +188,7 @@ class ExperienceFormulaTest {
     }
 
     @Test
-    @DisplayName("Прогресс, который округляется до целого уровня, повышает уровень")
+    @DisplayName("Progress that rounds to a whole level raises the level")
     void progressRoundsUpToNextLevel() {
 
         // На нулевом уровне всего 7 опыта, поэтому 0.99 * 7 = 6.93 -> 7.
@@ -199,7 +199,7 @@ class ExperienceFormulaTest {
     }
 
     @Test
-    @DisplayName("expFromLevels считает стоимость уровней от нуля")
+    @DisplayName("expFromLevels counts the cost of levels from zero")
     void expFromLevelsMatchesBruteForce() {
 
         for (int levels = 0; levels <= 500; levels++) {
@@ -209,13 +209,13 @@ class ExperienceFormulaTest {
     }
 
     @Test
-    @DisplayName("Формулы монотонны и не переполняются")
+    @DisplayName("The formulas are monotonic and do not overflow")
     void formulasAreMonotonicAndSafe() {
 
         for (int level = 0; level < ExperienceFormula.MAX_LEVEL; level++) {
 
             assertTrue(ExperienceFormula.totalAtLevel(level + 1) > ExperienceFormula.totalAtLevel(level),
-                    "Нарушена монотонность на уровне " + level);
+                    "Monotonicity is violated at level " + level);
 
         }
 

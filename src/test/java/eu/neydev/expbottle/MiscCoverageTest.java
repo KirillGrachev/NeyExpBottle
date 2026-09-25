@@ -19,7 +19,6 @@ import eu.neydev.expbottle.support.PlaceholderSupport;
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.bukkit.block.BlockFace;
-import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.block.Action;
@@ -96,7 +95,7 @@ class MiscCoverageTest {
         File file = new File(plugin.getDataFolder(), "config.yml");
         String content = Files.readString(file.toPath(), StandardCharsets.UTF_8);
 
-        assertTrue(content.contains(from), "В конфиге нет '" + from + "'");
+        assertTrue(content.contains(from), "config.yml is missing '" + from + "'");
         Files.writeString(file.toPath(), content.replace(from, to), StandardCharsets.UTF_8);
         services.reload();
 
@@ -145,7 +144,7 @@ class MiscCoverageTest {
     }
 
     @Test
-    @DisplayName("Бросок: чужие предметы, левая кнопка и вторая рука игнорируются")
+    @DisplayName("Throw: foreign items, the left button and the off hand are ignored")
     void throwAttemptIgnoredCases() {
 
         PlayerMock player = granted("Ney");
@@ -156,48 +155,52 @@ class MiscCoverageTest {
         handler.onThrowAttempt(interact(player, services.getBottleFactory().create(5), Action.LEFT_CLICK_AIR, EquipmentSlot.HAND));
         handler.onThrowAttempt(interact(player, services.getBottleFactory().create(5), Action.RIGHT_CLICK_AIR, EquipmentSlot.OFF_HAND));
 
-        assertEquals(0, drain(player).length(), "Ничего не должно происходить");
+        assertEquals(0, drain(player).length(), "Nothing must happen");
 
     }
 
     @Test
-    @DisplayName("Бросок: подделка и повреждённая бутылка отклоняются, валидная летит")
+    @DisplayName("Throw: a forged and a damaged bottle are rejected, a valid one flies")
     void throwAttemptVerdicts() {
 
         PlayerMock player = granted("Ney");
         BottleThrowHandler handler = new BottleThrowHandler(services);
 
         PlayerInteractEvent forged = interact(player, forgedBottle(500), Action.RIGHT_CLICK_AIR, EquipmentSlot.HAND);
-        assertTrue(forged.isCancelled(), "Подделка не бросается");
+        assertTrue(forged.isCancelled(), "A forgery is not thrown");
+        assertEquals(org.bukkit.event.Event.Result.DENY, forged.useItemInHand(), "The item in the hand is swallowed");
         assertTrue(drain(player).contains("not created by the server"));
 
         int max = services.getConfigManager().getMaxBottleLevels();
         ItemStack signed = services.getBottleTagService().tag(new ItemStack(Material.EXPERIENCE_BOTTLE), max + 1);
         PlayerInteractEvent broken = interact(player, signed, Action.RIGHT_CLICK_AIR, EquipmentSlot.HAND);
-        assertTrue(broken.isCancelled(), "Повреждённая бутылка не бросается");
+        assertTrue(broken.isCancelled(), "A damaged bottle is not thrown");
+        assertEquals(org.bukkit.event.Event.Result.DENY, broken.useItemInHand(), "The item in the hand is swallowed");
         assertTrue(drain(player).contains("damaged"));
 
         PlayerInteractEvent valid = interact(player, services.getBottleFactory().create(5),
                 Action.RIGHT_CLICK_AIR, EquipmentSlot.HAND);
         assertNotEquals(org.bukkit.event.Event.Result.DENY, valid.useItemInHand(),
-                "Валидная бутылка бросается");
+                "A valid bottle is thrown");
 
     }
 
     @Test
-    @DisplayName("Бросок: выключенный конфиг гасит клик, внешняя отмена уважается")
-    void throwAttemptDisabledAndExternalCancel() throws IOException {
+    @DisplayName("Throw: a non-projectile material swallows the click, an external cancel is respected")
+    void throwAttemptWrongMaterialAndExternalCancel() throws IOException {
 
-        setConfig("throwable: true", "throwable: false");
+        // Ванильный снаряд существует только у EXPERIENCE_BOTTLE: с другим
+        // материалом предмета из конфига клик в обычном режиме гасится кодом
+        setConfig("material: EXPERIENCE_BOTTLE", "material: GLASS_BOTTLE");
 
         PlayerMock player = granted("Ney");
-        BottleThrowHandler handler = new BottleThrowHandler(services);
 
-        PlayerInteractEvent disabled = interact(player, services.getBottleFactory().create(5),
+        PlayerInteractEvent wrongMaterial = interact(player, services.getBottleFactory().create(5),
                 Action.RIGHT_CLICK_AIR, EquipmentSlot.HAND);
-        assertTrue(disabled.isCancelled(), "При throwable: false клик гасится");
+        assertTrue(wrongMaterial.isCancelled(), "A non-projectile material cannot be thrown");
+        assertEquals(org.bukkit.event.Event.Result.DENY, wrongMaterial.useItemInHand(), "The item in the hand is swallowed");
 
-        setConfig("throwable: false", "throwable: true");
+        setConfig("material: GLASS_BOTTLE", "material: EXPERIENCE_BOTTLE");
 
         Bukkit.getPluginManager().registerEvents(new Listener() {
             @EventHandler
@@ -208,12 +211,95 @@ class MiscCoverageTest {
 
         PlayerInteractEvent cancelled = interact(player, services.getBottleFactory().create(5),
                 Action.RIGHT_CLICK_AIR, EquipmentSlot.HAND);
-        assertTrue(cancelled.isCancelled(), "Внешняя отмена BottleUseEvent гасит бросок");
+        assertTrue(cancelled.isCancelled(), "An external BottleUseEvent cancel swallows the throw");
+        assertEquals(org.bukkit.event.Event.Result.DENY, cancelled.useItemInHand(), "The item in the hand is swallowed");
 
     }
 
     @Test
-    @DisplayName("Клики меню: декорация и shift игнорируются, отказ без сообщения использует стандарт")
+    @DisplayName("Safe mode: the throw uses the bottle at once")
+    void safeModeUsesBottleOnThrow() throws IOException {
+
+        setConfig("safe_mode: false", "safe_mode: true");
+
+        PlayerMock player = granted("Ney");
+        player.setLevel(30);
+
+        ItemStack bottle = services.getBottleFactory().create(5);
+        player.getInventory().setItemInMainHand(bottle);
+
+        PlayerInteractEvent single = interact(player, bottle, Action.RIGHT_CLICK_AIR, EquipmentSlot.HAND);
+
+        assertTrue(single.isCancelled(), "In safe mode the vanilla throw is replaced by our own");
+        assertEquals(35, player.getLevel(), "The thrower got the levels right away");
+
+        ItemStack left = player.getInventory().getItemInMainHand();
+        assertTrue(left == null || left.getType() == Material.AIR, "The bottle was consumed");
+
+        ItemStack stack = services.getBottleFactory().create(5);
+        stack.setAmount(3);
+        player.getInventory().setItemInMainHand(stack);
+
+        interact(player, stack, Action.RIGHT_CLICK_AIR, EquipmentSlot.HAND);
+
+        assertEquals(40, player.getLevel(), "The second throw used the bottle again");
+        assertEquals(2, player.getInventory().getItemInMainHand().getAmount(), "One bottle left the stack");
+
+    }
+
+    @Test
+    @DisplayName("Safe mode: an external cancel keeps the bottle in the hand")
+    void safeModeRespectsExternalCancel() throws IOException {
+
+        setConfig("safe_mode: false", "safe_mode: true");
+
+        PlayerMock player = granted("Ney");
+        player.setLevel(30);
+
+        ItemStack bottle = services.getBottleFactory().create(5);
+        player.getInventory().setItemInMainHand(bottle);
+
+        Bukkit.getPluginManager().registerEvents(new Listener() {
+            @EventHandler
+            public void onUse(BottleUseEvent event) {
+                event.setCancelled(true);
+            }
+        }, plugin);
+
+        PlayerInteractEvent event = interact(player, bottle, Action.RIGHT_CLICK_AIR, EquipmentSlot.HAND);
+
+        assertTrue(event.isCancelled(), "The cancelled use swallows the throw");
+        assertEquals(30, player.getLevel(), "Nothing was granted");
+        assertEquals(Material.EXPERIENCE_BOTTLE, player.getInventory().getItemInMainHand().getType(),
+                "The bottle stayed in the hand");
+
+    }
+
+    @Test
+    @DisplayName("The spent projectile gives nothing, a vanilla bottle keeps its own reward")
+    void breakExperienceVerdicts() {
+
+        PlayerMock player = granted("Ney");
+        player.setLevel(30);
+        BottleThrowHandler handler = new BottleThrowHandler(services);
+
+        ItemStack spent = services.getBottleTagService().markSpent(new ItemStack(Material.EXPERIENCE_BOTTLE));
+        assertEquals(0, handler.breakExperience(spent, player.getLocation(), player, 7),
+                "The spent safe-mode projectile gives no reward on break");
+
+        ItemStack vanilla = new ItemStack(Material.EXPERIENCE_BOTTLE);
+        assertEquals(7, handler.breakExperience(vanilla, player.getLocation(), player, 7),
+                "A vanilla bottle keeps its own reward");
+
+        ItemStack bottle = services.getBottleFactory().create(5);
+        assertEquals(0, handler.breakExperience(bottle, player.getLocation(), player, 7),
+                "Our bottle replaces the reward with the stored levels");
+        assertEquals(35, player.getLevel(), "The receiver next to the break got the levels");
+
+    }
+
+    @Test
+    @DisplayName("Menu clicks: decoration and shift are ignored, a denial without a message uses the default")
     void menuClickBranches() throws IOException {
 
         writeMenu("clicks", """
@@ -245,20 +331,20 @@ class MiscCoverageTest {
 
         server.getPluginManager().callEvent(new InventoryClickEvent(
                 view, InventoryType.SlotType.CONTAINER, 10, ClickType.LEFT, InventoryAction.PICKUP_ALL));
-        assertEquals(0, drain(player).length(), "Декорация молчит");
+        assertEquals(0, drain(player).length(), "A decoration stays silent");
 
         server.getPluginManager().callEvent(new InventoryClickEvent(
                 view, InventoryType.SlotType.CONTAINER, 11, ClickType.SHIFT_LEFT, InventoryAction.PICKUP_ALL));
-        assertEquals(0, drain(player).length(), "Shift-клик игнорируется");
+        assertEquals(0, drain(player).length(), "A shift click is ignored");
 
         server.getPluginManager().callEvent(new InventoryClickEvent(
                 view, InventoryType.SlotType.CONTAINER, 11, ClickType.LEFT, InventoryAction.PICKUP_ALL));
-        assertTrue(drain(player).contains("permission"), "Пустое denial_message даёт стандартный отказ");
+        assertTrue(drain(player).contains("permission"), "An empty denial_message falls back to the default denial");
 
     }
 
     @Test
-    @DisplayName("Drag и закрытие меню обрабатываются слушателем")
+    @DisplayName("Drag and menu close are handled by the listener")
     void menuDragAndClose() throws IOException {
 
         writeMenu("drag", """
@@ -286,10 +372,10 @@ class MiscCoverageTest {
                 view, new ItemStack(Material.STONE), new ItemStack(Material.AIR), false,
                 Map.of(0, new ItemStack(Material.STONE)));
         server.getPluginManager().callEvent(drag);
-        assertTrue(drag.isCancelled(), "Drag в меню отменяется");
+        assertTrue(drag.isCancelled(), "A drag in the menu is cancelled");
 
         server.getPluginManager().callEvent(new InventoryCloseEvent(view));
-        assertTrue(drain(player).contains("closed"), "Действия закрытия выполнены слушателем");
+        assertTrue(drain(player).contains("closed"), "The close actions ran in the listener");
 
         // Закрытие без меню ничего не делает
         server.getPluginManager().callEvent(new InventoryCloseEvent(player.getOpenInventory()));
@@ -297,7 +383,7 @@ class MiscCoverageTest {
     }
 
     @Test
-    @DisplayName("Анти-дьюп: чужие предметы и выключенная настройка не отменяются")
+    @DisplayName("Anti dupe: foreign items and the disabled setting are not cancelled")
     void antiDupeBranches() {
 
         AntiDupeListener listener = new AntiDupeListener(plugin);
@@ -309,16 +395,44 @@ class MiscCoverageTest {
         InventoryCreativeEvent foreign = new InventoryCreativeEvent(
                 view, InventoryType.SlotType.CONTAINER, 10, new ItemStack(Material.STONE));
         listener.onCreativeClone(foreign);
-        assertFalse(foreign.isCancelled(), "Чужой предмет не трогаем");
+        assertFalse(foreign.isCancelled(), "A foreign item is left alone");
+
+        InventoryCreativeEvent vanilla = new InventoryCreativeEvent(
+                view, InventoryType.SlotType.CONTAINER, 11, new ItemStack(Material.EXPERIENCE_BOTTLE));
+        listener.onCreativeClone(vanilla);
+        assertFalse(vanilla.isCancelled(), "A vanilla experience bottle clones as usual");
 
     }
 
     @Test
-    @DisplayName("GUI: holder до инициализации, геттеры меню и раскладка с приоритетами")
+    @DisplayName("A vanilla bottle: the throw is not swallowed, the reward is not replaced")
+    void vanillaBottleIsUntouched() {
+
+        PlayerMock player = granted("Ney");
+        BottleThrowHandler handler = new BottleThrowHandler(services);
+
+        ItemStack vanilla = new ItemStack(Material.EXPERIENCE_BOTTLE);
+
+        // У клика в воздух useInteractedBlock равен DENY всегда, поэтому
+        // проверяем именно предмет в руке: его гасим только мы.
+        PlayerInteractEvent event = interact(player, vanilla, Action.RIGHT_CLICK_AIR, EquipmentSlot.HAND);
+        assertNotEquals(org.bukkit.event.Event.Result.DENY, event.useItemInHand(), "A plain bottle is not swallowed");
+        assertEquals(0, drain(player).length(), "The player is told nothing");
+
+        int before = player.getLevel();
+        assertEquals(0, handler.handleBreak(vanilla, player.getLocation(), player),
+                "The signature and the reward do not apply to a foreign item");
+        assertEquals(before, player.getLevel(), "The player levels do not change");
+        assertEquals(0, drain(player).length(), "There are no security warnings");
+
+    }
+
+    @Test
+    @DisplayName("GUI: the holder before init, menu getters and the layout with priorities")
     void guiInternals() {
 
         MenuHolder fresh = new MenuHolder();
-        assertNull(fresh.getInventory(), "До инициализации инвентаря нет");
+        assertNull(fresh.getInventory(), "There is no inventory before init");
 
         PlayerMock player = granted("Ney");
         player.performCommand("exp");
@@ -339,19 +453,19 @@ class MiscCoverageTest {
                 .material(Material.PAPER).priority(5).slots(List.of(5)).build();
 
         MenuLayout layout = MenuLayout.of(List.of(low, high));
-        assertEquals("high", layout.getItem(5).getId(), "Высокий приоритет перекрывает низкий");
+        assertEquals("high", layout.getItem(5).getId(), "A high priority overrides a low one");
         assertNull(layout.getItem(6));
 
     }
 
     @Test
-    @DisplayName("PlaceholderAPI без установленного плагина не ломает запуск")
+    @DisplayName("PlaceholderAPI without the plugin installed does not break startup")
     void placeholderSupportWithoutApi() {
 
         PlaceholderSupport.registerIfPresent(plugin);
 
         PlaceholderBridge bridge = new PlaceholderBridge();
-        assertEquals("без процентов", bridge.process(granted("Ney"), "без процентов"));
+        assertEquals("without percents", bridge.process(granted("Ney"), "without percents"));
 
         ExpBottleExpansion expansion = new ExpBottleExpansion(plugin);
 
@@ -378,7 +492,7 @@ class MiscCoverageTest {
     }
 
     @Test
-    @DisplayName("Реестр меню переживает битые файлы и дубликаты")
+    @DisplayName("The menu registry survives broken files and duplicates")
     void menuRegistryBadFiles() throws IOException {
 
         writeMenu("broken", """
@@ -400,7 +514,7 @@ class MiscCoverageTest {
                   title: "Mess"
                   size: 27
                 items:
-                  not_a_section: "строка"
+                  not_a_section: "line"
                   zero:
                     type: TIER
                     slot: 10
@@ -427,12 +541,12 @@ class MiscCoverageTest {
 
         services.reload();
 
-        assertTrue(services.getMenuRegistry().byName("broken").isEmpty(), "Файл без секции menu не грузится");
-        assertTrue(services.getMenuRegistry().byName("mess").isPresent(), "Частично битое меню грузится");
-        assertTrue(services.getBottleRegistry().byId("zero").isEmpty(), "Кнопка с levels 0 отброшена");
+        assertTrue(services.getMenuRegistry().byName("broken").isEmpty(), "A file without the menu section does not load");
+        assertTrue(services.getMenuRegistry().byName("mess").isPresent(), "A partially broken menu loads");
+        assertTrue(services.getBottleRegistry().byId("zero").isEmpty(), "A button with levels 0 is dropped");
         assertTrue(services.getBottleRegistry().byId("duplicate").isPresent());
         assertEquals(7, services.getBottleRegistry().byId("duplicate").orElseThrow().levels(),
-                "Дубликат id из другого меню не перетирает первый (меню идут по алфавиту)");
+                "A duplicate id from another menu does not overwrite the first one (menus go alphabetically)");
 
         assertNotNull(services.getMenuRegistry().getNames());
         assertTrue(services.getMenuRegistry().size() >= 1);
@@ -440,7 +554,7 @@ class MiscCoverageTest {
     }
 
     @Test
-    @DisplayName("Конфиг: отсутствующие ключи дают дефолты, битые значения не роняют загрузку")
+    @DisplayName("Config: missing keys fall back to defaults, broken values do not break the load")
     void configDefaultsAndGarbage() throws IOException {
 
         File file = new File(plugin.getDataFolder(), "config.yml");
@@ -448,37 +562,38 @@ class MiscCoverageTest {
         Files.writeString(file.toPath(), """
                 settings:
                   bottle:
-                    material: ТАКОГО_НЕТ
+                    material: NO_SUCH
                   menu:
                     default: ""
                 messages:
                   only_players:
                     text:
-                      - "текст без enabled"
+                      - "text without enabled"
                 """, StandardCharsets.UTF_8);
 
         services.reload();
 
         assertEquals(Material.EXPERIENCE_BOTTLE, services.getConfigManager().getBottleMaterial());
-        assertTrue(services.getConfigManager().isEnabled(), "Отсутствующий ключ равен дефолту");
+        assertTrue(services.getConfigManager().isEnabled(), "A missing key equals the default");
         assertTrue(services.getConfigManager().getMessage(eu.neydev.expbottle.config.type.MessageKey.ONLY_PLAYERS).size() == 1);
         assertFalse(services.getConfigManager().isMessageEnabled(eu.neydev.expbottle.config.type.MessageKey.NO_PERMISSION),
-                "Отсутствующее сообщение выключено");
+                "A missing message is disabled");
 
         Files.writeString(file.toPath(), "", StandardCharsets.UTF_8);
         services.reload();
 
-        assertTrue(services.getConfigManager().isEnabled(), "Пустой конфиг равен дефолтам");
+        assertTrue(services.getConfigManager().isEnabled(), "An empty config equals the defaults");
         assertNotNull(services.getConfigManager().getDefaultMenu());
+        assertFalse(services.getConfigManager().isSafeMode(), "Safe mode is off by default");
 
     }
 
     @Test
-    @DisplayName("Слушатели регистрируются и работают через диспетчер")
+    @DisplayName("The listeners register and work through the dispatcher")
     void listenersWired() {
 
         MenuListener listener = new MenuListener(plugin);
-        assertNotNull(listener, "Слушатель меню создаётся");
+        assertNotNull(listener, "The menu listener is created");
 
         PlayerMock player = granted("Ney");
         player.performCommand("exp");
@@ -488,7 +603,7 @@ class MiscCoverageTest {
         InventoryClickEvent event = new InventoryClickEvent(
                 view, InventoryType.SlotType.CONTAINER, 4, ClickType.LEFT, InventoryAction.PICKUP_ALL);
         listener.onMenuClick(event);
-        assertTrue(event.isCancelled(), "Клик в меню отменён слушателем");
+        assertTrue(event.isCancelled(), "The menu click was cancelled by the listener");
 
     }
 }

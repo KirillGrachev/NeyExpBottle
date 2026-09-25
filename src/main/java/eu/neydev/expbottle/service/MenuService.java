@@ -1,9 +1,12 @@
 package eu.neydev.expbottle.service;
 
+import eu.neydev.expbottle.NeyExpBottle;
 import eu.neydev.expbottle.config.PluginConfig;
 import eu.neydev.expbottle.config.type.MessageKey;
 import eu.neydev.expbottle.gui.Menu;
 import eu.neydev.expbottle.gui.MenuHolder;
+import eu.neydev.expbottle.gui.MenuNavigation;
+import eu.neydev.expbottle.gui.MenuRenderer;
 import eu.neydev.expbottle.registry.MenuDefinition;
 import eu.neydev.expbottle.registry.MenuRegistry;
 import eu.neydev.expbottle.util.Placeholders;
@@ -21,9 +24,9 @@ import java.util.List;
  * <p>Открытое меню ищется через holder инвентаря, поэтому плагин не хранит
  * собственных карт игроков и не может «забыть» их очистить.</p>
  */
-public class MenuService {
+public class MenuService implements MenuNavigation {
 
-    private final PluginServices services;
+    private final NeyExpBottle plugin;
     private final PluginConfig config;
     private final MenuRegistry menuRegistry;
     private final MessageService messageService;
@@ -31,17 +34,23 @@ public class MenuService {
     private final PlaceholderService placeholderService;
     private final ActionExecutor actionExecutor;
     private final DiagnosticsService diagnosticsService;
+    private final MenuRenderer menuRenderer;
 
-    public MenuService(@NotNull PluginServices services) {
+    public MenuService(@NotNull NeyExpBottle plugin, @NotNull PluginConfig config,
+                       @NotNull MenuRegistry menuRegistry, @NotNull MessageService messageService,
+                       @NotNull PermissionService permissionService, @NotNull PlaceholderService placeholderService,
+                       @NotNull ActionExecutor actionExecutor, @NotNull DiagnosticsService diagnosticsService,
+                       @NotNull MenuRenderer menuRenderer) {
 
-        this.services = services;
-        this.config = services.getConfigManager();
-        this.menuRegistry = services.getMenuRegistry();
-        this.messageService = services.getMessageService();
-        this.permissionService = services.getPermissionService();
-        this.placeholderService = services.getPlaceholderService();
-        this.actionExecutor = services.getActionExecutor();
-        this.diagnosticsService = services.getDiagnosticsService();
+        this.plugin = plugin;
+        this.config = config;
+        this.menuRegistry = menuRegistry;
+        this.messageService = messageService;
+        this.permissionService = permissionService;
+        this.placeholderService = placeholderService;
+        this.actionExecutor = actionExecutor;
+        this.diagnosticsService = diagnosticsService;
+        this.menuRenderer = menuRenderer;
 
     }
 
@@ -75,6 +84,7 @@ public class MenuService {
      * @param menuName имя меню (файл в папке menus/)
      * @return true если меню открыто
      */
+    @Override
     public boolean open(@NotNull Player player, @Nullable String menuName) {
 
         if (!config.isEnabled()) {
@@ -98,12 +108,88 @@ public class MenuService {
 
         }
 
+        return openInternal(player, definition, findMenu(player), Placeholders.create());
+
+    }
+
+    /**
+     * Открывает меню как дочернее: с родителем и его плейсхолдерами.
+     * Так меню количества знает уровни кнопки, по которой его открыли.
+     *
+     * @param player   игрок
+     * @param menuName имя меню (файл в папке menus/)
+     * @param parent   родительское меню или {@code null}
+     * @param context  плейсхолдеры родителя
+     * @return true если меню открыто
+     */
+    public boolean openChild(@NotNull Player player, @NotNull String menuName,
+                             @Nullable Menu parent, @NotNull Placeholders context) {
+
+        if (!config.isEnabled()) {
+            messageService.send(player, MessageKey.PLUGIN_DISABLED);
+            return false;
+        }
+
+        MenuDefinition definition = menuRegistry.byName(menuName).orElse(null);
+
+        if (definition == null) {
+
+            messageService.send(player, MessageKey.MENU_NOT_FOUND,
+                    Placeholders.create().set("menu", menuName));
+            diagnosticsService.debug("Menu '" + menuName + "' not found (request " + player.getName() + ")");
+            return false;
+
+        }
+
+        return openInternal(player, definition, parent, context);
+
+    }
+
+    /**
+     * Возвращает игрока в родительское меню кнопки {@code [back]}.
+     * Родителя нет (окно открыли командой) — закрываем окно совсем.
+     *
+     * @param player игрок
+     */
+    @Override
+    public void openParent(@NotNull Player player) {
+
+        Menu current = findMenu(player);
+
+        if (current == null) {
+            return;
+        }
+
+        Menu parent = current.getParent();
+
+        if (parent == null) {
+
+            close(player);
+            return;
+
+        }
+
+        // Родительское окно переоткрываем тем же снимком и сразу освежаем
+        // динамические предметы: опыт и переключатель количества могли измениться
+        parent.open();
+        parent.refresh();
+        diagnosticsService.debug("Returned to menu '" + parent.getName() + "': " + player.getName());
+
+    }
+
+    /**
+     * Общие проверки и создание окна: права, условие открытия, действия открытия.
+     */
+    private boolean openInternal(@NotNull Player player, @NotNull MenuDefinition definition,
+                                 @Nullable Menu parent, @NotNull Placeholders context) {
+
         if (!permissionService.has(player, definition.permission())) {
             messageService.send(player, MessageKey.NO_PERMISSION);
             return false;
         }
 
-        Placeholders placeholders = placeholderService.forPlayer(player);
+        Placeholders placeholders = placeholderService.forMenu(player, definition.name());
+        placeholders.merge(context);
 
         if (!definition.openRequirement().evaluate(placeholders)) {
 
@@ -117,7 +203,7 @@ public class MenuService {
 
         }
 
-        new Menu(services, definition, player).open();
+        new Menu(menuRenderer, placeholderService, plugin, definition, player, parent, context).open();
         diagnosticsService.incrementMenusOpened();
 
         actionExecutor.execute(player, definition.openActions(), placeholders);
@@ -148,6 +234,7 @@ public class MenuService {
         return findMenu(player) != null;
     }
 
+    @Override
     public void refresh(@NotNull Player player) {
 
         Menu menu = findMenu(player);
@@ -158,6 +245,7 @@ public class MenuService {
 
     }
 
+    @Override
     public void close(@NotNull Player player) {
 
         if (isMenuOpen(player)) {

@@ -21,12 +21,30 @@ public class PermissionService {
         this.config = config;
     }
 
-    public boolean canUse(@NotNull CommandSender sender) {
-        return has(sender, config.getPermissionUse());
+    /**
+     * Проверяет, закрыт ли отправителю общий доступ к командам плагина.
+     *
+     * <p>Инверсия {@link #has}: guard-клаузулы команд читаются без двойного
+     * отрицания.</p>
+     *
+     * @param sender отправитель
+     * @return true если доступ запрещён
+     */
+    public boolean useDenied(@NotNull CommandSender sender) {
+        return !has(sender, config.getPermissionUse());
     }
 
-    public boolean canExchange(@NotNull CommandSender sender) {
-        return has(sender, config.getPermissionExchange());
+    /**
+     * Проверяет, закрыт ли игроку обмен опыта на бутылки.
+     *
+     * <p>Инверсия {@link #has} по тому же правилу, что и
+     * {@link #useDenied}.</p>
+     *
+     * @param sender отправитель
+     * @return true если обмен запрещён
+     */
+    public boolean exchangeDenied(@NotNull CommandSender sender) {
+        return !has(sender, config.getPermissionExchange());
     }
 
     public boolean canAdmin(@NotNull CommandSender sender) {

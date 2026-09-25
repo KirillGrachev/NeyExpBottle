@@ -36,13 +36,13 @@ class MenuItemTest {
         try {
             configuration.loadFromString(yaml);
         } catch (InvalidConfigurationException exception) {
-            throw new IllegalStateException("Тестовый YAML некорректен", exception);
+            throw new IllegalStateException("The test YAML is invalid", exception);
         }
 
         ConfigurationSection section = configuration.getConfigurationSection("item");
 
         if (section == null) {
-            throw new IllegalStateException("В тестовом YAML нет секции item");
+            throw new IllegalStateException("The test YAML has no item section");
         }
 
         return section;
@@ -50,10 +50,10 @@ class MenuItemTest {
     }
 
     @Test
-    @DisplayName("Кнопка обмена читается целиком")
+    @DisplayName("The exchange button reads in full")
     void parsesTierItem() {
 
-        MenuItem item = MenuItem.from("tier_5", section("""
+        MenuItem item = MenuItemParser.parse("tier_5", section("""
                 item:
                   type: TIER
                   slot: 21
@@ -73,15 +73,15 @@ class MenuItemTest {
         assertEquals(FillMode.SLOTS, item.getFillMode());
         assertEquals(1, item.getSlots().size());
         assertEquals(21, item.getSlots().get(0));
-        assertTrue(item.isRefresh(), "TIER должен обновляться по умолчанию");
+        assertTrue(item.isRefresh(), "TIER must refresh by default");
 
     }
 
     @Test
-    @DisplayName("Список слотов поддерживает диапазоны и дубликаты убирает")
+    @DisplayName("The slot list supports ranges and removes duplicates")
     void parsesSlotRanges() {
 
-        MenuItem item = MenuItem.from("border", section("""
+        MenuItem item = MenuItemParser.parse("border", section("""
                 item:
                   type: DECORATION
                   material: GRAY_STAINED_GLASS_PANE
@@ -97,16 +97,16 @@ class MenuItemTest {
     }
 
     @Test
-    @DisplayName("Служебные токены all и empty задают режим заполнения")
+    @DisplayName("The all and empty service tokens set the fill mode")
     void parsesFillModes() {
 
-        MenuItem all = MenuItem.from("bg_all", section("""
+        MenuItem all = MenuItemParser.parse("bg_all", section("""
                 item:
                   material: BLACK_STAINED_GLASS_PANE
                   slots: ["all"]
                 """), LOGGER, SIZE);
 
-        MenuItem empty = MenuItem.from("bg_empty", section("""
+        MenuItem empty = MenuItemParser.parse("bg_empty", section("""
                 item:
                   material: BLACK_STAINED_GLASS_PANE
                   slots: ["empty"]
@@ -114,7 +114,7 @@ class MenuItemTest {
 
         assertEquals(FillMode.ALL, all.getFillMode());
         assertTrue(all.isFill());
-        assertTrue(all.getSlots().isEmpty(), "В режиме ALL список слотов не нужен");
+        assertTrue(all.getSlots().isEmpty(), "In ALL mode the slot list is not needed");
 
         assertEquals(FillMode.EMPTY, empty.getFillMode());
         assertTrue(empty.getSlots().isEmpty());
@@ -122,10 +122,10 @@ class MenuItemTest {
     }
 
     @Test
-    @DisplayName("Слоты вне диапазона меню отбрасываются")
+    @DisplayName("Slots outside the menu range are dropped")
     void rejectsOutOfRangeSlots() {
 
-        MenuItem item = MenuItem.from("bad_slot", section("""
+        MenuItem item = MenuItemParser.parse("bad_slot", section("""
                 item:
                   type: CUSTOM
                   material: STONE
@@ -137,13 +137,13 @@ class MenuItemTest {
     }
 
     @Test
-    @DisplayName("Неизвестный материал заменяется запасным без падения")
+    @DisplayName("An unknown material falls back without a crash")
     void fallsBackOnUnknownMaterial() {
 
-        MenuItem item = MenuItem.from("weird", section("""
+        MenuItem item = MenuItemParser.parse("weird", section("""
                 item:
                   type: DECORATION
-                  material: ТАКОГО_НЕТ
+                  material: NO_SUCH
                   slot: 0
                 """), LOGGER, SIZE);
 
@@ -152,10 +152,10 @@ class MenuItemTest {
     }
 
     @Test
-    @DisplayName("Битое условие не ломает загрузку предмета")
+    @DisplayName("A broken condition does not break the item load")
     void brokenConditionIsIgnored() {
 
-        MenuItem item = MenuItem.from("cond", section("""
+        MenuItem item = MenuItemParser.parse("cond", section("""
                 item:
                   type: CUSTOM
                   material: STONE
@@ -168,10 +168,10 @@ class MenuItemTest {
     }
 
     @Test
-    @DisplayName("Рабочее условие разбирается в дерево")
+    @DisplayName("A working condition parses into a tree")
     void workingConditionIsParsed() {
 
-        MenuItem item = MenuItem.from("cond", section("""
+        MenuItem item = MenuItemParser.parse("cond", section("""
                 item:
                   type: TIER
                   material: STONE
@@ -185,10 +185,10 @@ class MenuItemTest {
     }
 
     @Test
-    @DisplayName("Флаги предмета и custom_model_data")
+    @DisplayName("Item flags and custom_model_data")
     void parsesItemFlagsAndModelData() {
 
-        MenuItem item = MenuItem.from("flags", section("""
+        MenuItem item = MenuItemParser.parse("flags", section("""
                 item:
                   type: CUSTOM
                   material: DIAMOND_SWORD
@@ -207,16 +207,16 @@ class MenuItemTest {
     }
 
     @Test
-    @DisplayName("Действия клика читаются списком")
+    @DisplayName("Click actions are read as a list")
     void parsesClickActions() {
 
-        MenuItem item = MenuItem.from("custom", section("""
+        MenuItem item = MenuItemParser.parse("custom", section("""
                 item:
                   type: CUSTOM
                   material: NETHER_STAR
                   slot: 30
                   click:
-                    - "[message] &cПривет"
+                    - "[message] &cHello"
                     - "[sound] ENTITY_PLAYER_LEVELUP:1:1.5"
                     - "[close]"
                 """), LOGGER, SIZE);
@@ -225,29 +225,29 @@ class MenuItemTest {
         assertEquals(ActionType.MESSAGE, item.getClickActions().get(0).type());
         assertEquals(ActionType.SOUND, item.getClickActions().get(1).type());
         assertEquals(ActionType.CLOSE, item.getClickActions().get(2).type());
-        assertEquals("&cПривет", item.getClickActions().get(0).argument());
+        assertEquals("&cHello", item.getClickActions().get(0).argument());
 
     }
 
     @Test
-    @DisplayName("refresh по умолчанию зависит от типа предмета")
+    @DisplayName("the default refresh depends on the item type")
     void refreshDefaultDependsOnType() {
 
-        MenuItem info = MenuItem.from("info", section("""
+        MenuItem info = MenuItemParser.parse("info", section("""
                 item:
                   type: INFO
                   material: BOOK
                   slot: 4
                 """), LOGGER, SIZE);
 
-        MenuItem decoration = MenuItem.from("deco", section("""
+        MenuItem decoration = MenuItemParser.parse("deco", section("""
                 item:
                   type: DECORATION
                   material: BOOK
                   slot: 4
                 """), LOGGER, SIZE);
 
-        MenuItem forced = MenuItem.from("forced", section("""
+        MenuItem forced = MenuItemParser.parse("forced", section("""
                 item:
                   type: DECORATION
                   material: BOOK
@@ -262,10 +262,10 @@ class MenuItemTest {
     }
 
     @Test
-    @DisplayName("Головы: владелец и текстура читаются из конфига")
+    @DisplayName("Heads: the owner and the texture are read from the config")
     void parsesSkullFields() {
 
-        MenuItem item = MenuItem.from("head", section("""
+        MenuItem item = MenuItemParser.parse("head", section("""
                 item:
                   type: DECORATION
                   material: PLAYER_HEAD
@@ -280,10 +280,10 @@ class MenuItemTest {
     }
 
     @Test
-    @DisplayName("Без слота предмет не получает позиций, но не роняет загрузку")
+    @DisplayName("Without a slot the item gets no positions but does not break the load")
     void missingSlotIsSurvivable() {
 
-        MenuItem item = MenuItem.from("no_slot", section("""
+        MenuItem item = MenuItemParser.parse("no_slot", section("""
                 item:
                   type: DECORATION
                   material: STONE

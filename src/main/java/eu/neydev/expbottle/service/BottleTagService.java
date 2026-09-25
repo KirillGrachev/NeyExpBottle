@@ -1,6 +1,5 @@
 package eu.neydev.expbottle.service;
 
-import eu.neydev.expbottle.config.PluginConfig;
 import eu.neydev.expbottle.model.BottleData;
 import eu.neydev.expbottle.util.SignatureUtil;
 import org.bukkit.NamespacedKey;
@@ -11,8 +10,6 @@ import org.bukkit.persistence.PersistentDataType;
 import org.bukkit.plugin.Plugin;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
-
-import java.io.File;
 
 /**
  * Чтение и запись метки бутылки в {@code PersistentDataContainer}.
@@ -30,22 +27,21 @@ public class BottleTagService {
     private static final String KEY_MARKER = "exp_bottle";
     private static final String KEY_LEVELS = "bottle_levels";
     private static final String KEY_SIGNATURE = "bottle_signature";
-
-    private final PluginConfig config;
+    private static final String KEY_SPENT = "bottle_spent";
 
     private final NamespacedKey markerKey;
     private final NamespacedKey levelsKey;
     private final NamespacedKey signatureKey;
+    private final NamespacedKey spentKey;
 
     private final byte[] secret;
 
-    public BottleTagService(@NotNull Plugin plugin, @NotNull PluginConfig config) {
-
-        this.config = config;
+    public BottleTagService(@NotNull Plugin plugin) {
 
         this.markerKey = new NamespacedKey(plugin, KEY_MARKER);
         this.levelsKey = new NamespacedKey(plugin, KEY_LEVELS);
         this.signatureKey = new NamespacedKey(plugin, KEY_SIGNATURE);
+        this.spentKey = new NamespacedKey(plugin, KEY_SPENT);
 
         this.secret = SignatureUtil.loadOrCreateSecret(plugin.getDataFolder(), plugin.getLogger());
 
@@ -92,6 +88,54 @@ public class BottleTagService {
 
     public int readLevels(@Nullable ItemStack item) {
         return read(item).levels();
+    }
+
+    /**
+     * Помечает предмет снаряда как уже использованный.
+     *
+     * <p>Метка бутылки (уровни и подпись) стирается, поэтому повторная награда
+     * при поломке невозможна даже для снаряда safe-режима, который летит
+     * только ради анимации броска.</p>
+     *
+     * @param item предмет снаряда
+     * @return тот же предмет с меткой использованного
+     */
+    public @NotNull ItemStack markSpent(@NotNull ItemStack item) {
+
+        ItemMeta meta = item.getItemMeta();
+
+        if (meta == null) {
+            return item;
+        }
+
+        PersistentDataContainer container = meta.getPersistentDataContainer();
+
+        container.remove(markerKey);
+        container.remove(levelsKey);
+        container.remove(signatureKey);
+        container.set(spentKey, PersistentDataType.INTEGER, 1);
+
+        item.setItemMeta(meta);
+        return item;
+
+    }
+
+    /**
+     * Проверяет, помечен ли предмет как использованный снаряд safe-режима.
+     *
+     * @param item предмет (может быть {@code null})
+     * @return true если награда за этот предмет уже выдана
+     */
+    public boolean isSpent(@Nullable ItemStack item) {
+
+        if (item == null || !item.hasItemMeta()) {
+            return false;
+        }
+
+        ItemMeta meta = item.getItemMeta();
+
+        return meta != null && meta.getPersistentDataContainer().has(spentKey, PersistentDataType.INTEGER);
+
     }
 
     /**

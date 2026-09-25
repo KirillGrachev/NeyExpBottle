@@ -5,6 +5,7 @@ import eu.neydev.expbottle.command.CommandDispatcher;
 import eu.neydev.expbottle.command.ExpCommand;
 import eu.neydev.expbottle.config.ConfigManager;
 import eu.neydev.expbottle.event.EventDispatcher;
+import eu.neydev.expbottle.listener.AmountSelectionListener;
 import eu.neydev.expbottle.listener.AntiDupeListener;
 import eu.neydev.expbottle.listener.BottleUseListener;
 import eu.neydev.expbottle.listener.MenuListener;
@@ -57,7 +58,8 @@ public final class NeyExpBottle extends JavaPlugin {
         new EventDispatcher(this).registerEvents(
                 new MenuListener(this),
                 new BottleUseListener(this),
-                new AntiDupeListener(this)
+                new AntiDupeListener(this),
+                new AmountSelectionListener(this)
         );
 
         // Интеграция с PlaceholderAPI (если установлен)

@@ -97,6 +97,7 @@ public final class SignatureUtil {
             return toHex(digest).substring(0, SIGNATURE_CHARS);
 
         } catch (Exception exception) {
+            // Недостижимо: HmacSHA256 есть в каждой поддерживаемой JVM
             return "";
         }
 

@@ -16,6 +16,13 @@ import java.util.Map;
  */
 public final class Placeholders {
 
+    /**
+     * Максимум проходов подстановки: значение одного плейсхолдера может само
+     * содержать другие (например, {@code {amount_hint}} раскрывается в шаблон
+     * с {@code {amount_label}}), поэтому одного прохода мало.
+     */
+    private static final int MAX_PASSES = 4;
+
     private final Map<String, String> values = new LinkedHashMap<>();
 
     public static @NotNull Placeholders create() {
@@ -50,7 +57,21 @@ public final class Placeholders {
     }
 
     /**
+     * Сырое значение плейсхолдера.
+     *
+     * @param key имя без фигурных скобок
+     * @return значение или {@code null}, если ключ не задан
+     */
+    public @Nullable String get(@NotNull String key) {
+        return values.get(key);
+    }
+
+    /**
      * Подставляет значения в строку.
+     *
+     * <p>Проходы повторяются, пока текст меняется: так раскрываются вложенные
+     * плейсхолдеры, пришедшие из значений конфига. Ограничение проходов
+     * защищает от бесконечного цикла, если значение ссылается само на себя.</p>
      *
      * @param text исходный текст
      * @return текст с подставленными значениями
@@ -67,8 +88,20 @@ public final class Placeholders {
 
         String result = text;
 
-        for (Map.Entry<String, String> entry : values.entrySet()) {
-            result = result.replace("{" + entry.getKey() + "}", entry.getValue());
+        for (int pass = 0; pass < MAX_PASSES; pass++) {
+
+            String next = result;
+
+            for (Map.Entry<String, String> entry : values.entrySet()) {
+                next = next.replace("{" + entry.getKey() + "}", entry.getValue());
+            }
+
+            if (next.equals(result)) {
+                break;
+            }
+
+            result = next;
+
         }
 
         return result;

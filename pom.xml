@@ -7,11 +7,27 @@
 
     <groupId>eu.neydev</groupId>
     <artifactId>neyexpbottle</artifactId>
-    <version>1.2.0</version>
+    <version>1.2.3</version>
     <packaging>jar</packaging>
 
     <name>NeyExpBottle</name>
     <description>Обмен опыта на бутылки с опытом для Spigot/Paper</description>
+
+    <licenses>
+        <license>
+            <name>MIT License</name>
+            <url>https://opensource.org/licenses/MIT</url>
+            <distribution>repo</distribution>
+        </license>
+    </licenses>
+
+    <developers>
+        <developer>
+            <id>neydev</id>
+            <name>Ney (NeyOff)</name>
+            <url>https://t.me/NeyOff</url>
+        </developer>
+    </developers>
 
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
@@ -156,11 +172,21 @@
                               означает, что новый код пришёл без тестов.
                               Исключены только shim-классы совместимости, которые
                               невозможно выполнить вне реального сервера
-                              (reflection в Paper/authlib, реестр звуков 1.21.2+,
-                              хук установленного PlaceholderAPI).
+                              (стратегии нанесения текстур и отражение к
+                              Paper/authlib/NMS в пакете support.skull, реестр
+                              звуков 1.21.2+, хук установленного PlaceholderAPI).
+                              Чистый кодек текстур (SkullTextureCodec) и подбор
+                              стратегии (SkullTextureSupport) покрыты тестами.
                             -->
                             <excludes>
-                                <exclude>eu/neydev/expbottle/util/SkullUtil.class</exclude>
+                                <exclude>eu/neydev/expbottle/support/skull/Reflect.class</exclude>
+                                <exclude>eu/neydev/expbottle/support/skull/GameProfileFactory.class</exclude>
+                                <exclude>eu/neydev/expbottle/support/skull/SkullOwnerWriter.class</exclude>
+                                <exclude>eu/neydev/expbottle/support/skull/PaperProfileStrategy.class</exclude>
+                                <exclude>eu/neydev/expbottle/support/skull/CraftProfilePropertiesStrategy.class</exclude>
+                                <exclude>eu/neydev/expbottle/support/skull/GameProfileFieldStrategy.class</exclude>
+                                <exclude>eu/neydev/expbottle/support/skull/ReserializedProfileStrategy.class</exclude>
+                                <exclude>eu/neydev/expbottle/support/skull/NmsTagStrategy.class</exclude>
                                 <exclude>eu/neydev/expbottle/util/SoundUtil.class</exclude>
                                 <exclude>eu/neydev/expbottle/support/PlaceholderSupport.class</exclude>
                                 <exclude>eu/neydev/expbottle/support/PlaceholderBridge.class</exclude>

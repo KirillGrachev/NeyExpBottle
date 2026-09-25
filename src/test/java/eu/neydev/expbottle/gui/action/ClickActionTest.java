@@ -18,18 +18,18 @@ class ClickActionTest {
     private static final Logger LOGGER = Logger.getLogger("ClickActionTest");
 
     @Test
-    @DisplayName("Действие с аргументом")
+    @DisplayName("An action with an argument")
     void parsesActionWithArgument() {
 
-        ClickAction action = ClickAction.parse("[message] &cНедостаточно опыта");
+        ClickAction action = ClickAction.parse("[message] &cNot enough experience");
 
         assertEquals(ActionType.MESSAGE, action.type());
-        assertEquals("&cНедостаточно опыта", action.argument());
+        assertEquals("&cNot enough experience", action.argument());
 
     }
 
     @Test
-    @DisplayName("Действие без аргумента")
+    @DisplayName("An action without an argument")
     void parsesActionWithoutArgument() {
 
         ClickAction action = ClickAction.parse("[close]");
@@ -40,7 +40,7 @@ class ClickActionTest {
     }
 
     @Test
-    @DisplayName("Регистр тега и пробелы не важны")
+    @DisplayName("The tag case and spaces do not matter")
     void tagIsCaseInsensitive() {
 
         assertEquals(ActionType.CONSOLE, ClickAction.parse("[ Console ]give Ney diamond 1").type());
@@ -49,7 +49,7 @@ class ClickActionTest {
     }
 
     @Test
-    @DisplayName("Аргумент может содержать скобки и несколько пробелов")
+    @DisplayName("The argument may contain brackets and multiple spaces")
     void argumentKeepsInnerBrackets() {
 
         ClickAction action = ClickAction.parse("[player] minecraft:give @p diamond[Unbreakable:1] 1");
@@ -60,32 +60,32 @@ class ClickActionTest {
     }
 
     @Test
-    @DisplayName("Все типы действий распознаются")
+    @DisplayName("All action types are recognized")
     void allActionTypesAreRecognized() {
 
         for (ActionType type : ActionType.values()) {
-            assertEquals(type, ClickAction.parse("[" + type.getTag() + "] аргумент").type());
+            assertEquals(type, ClickAction.parse("[" + type.getTag() + "] argument").type());
         }
 
     }
 
     @Test
-    @DisplayName("Некорректные строки отклоняются")
+    @DisplayName("Invalid lines are rejected")
     void malformedActions() {
 
         assertThrows(IllegalArgumentException.class, () -> ClickAction.parse(""));
         assertThrows(IllegalArgumentException.class, () -> ClickAction.parse(null));
-        assertThrows(IllegalArgumentException.class, () -> ClickAction.parse("message без скобок"));
-        assertThrows(IllegalArgumentException.class, () -> ClickAction.parse("[unknown] текст"));
+        assertThrows(IllegalArgumentException.class, () -> ClickAction.parse("message without brackets"));
+        assertThrows(IllegalArgumentException.class, () -> ClickAction.parse("[unknown] text"));
 
     }
 
     @Test
-    @DisplayName("Список действий пропускает битые строки, а не падает")
+    @DisplayName("The action list skips broken lines instead of crashing")
     void parseListSkipsBrokenLines() {
 
         List<ClickAction> actions = ClickAction.parseList(
-                List.of("[message] первый", "битая строка", "[close]", ""), LOGGER, "test");
+                List.of("[message] first", "broken line", "[close]", ""), LOGGER, "test");
 
         assertEquals(2, actions.size());
         assertEquals(ActionType.MESSAGE, actions.get(0).type());
@@ -94,7 +94,7 @@ class ClickActionTest {
     }
 
     @Test
-    @DisplayName("Пустой список действий допустим")
+    @DisplayName("An empty action list is allowed")
     void parseListHandlesEmpty() {
 
         assertTrue(ClickAction.parseList(null, LOGGER, "test").isEmpty());

@@ -11,6 +11,7 @@ import eu.neydev.expbottle.gui.item.MenuItem;
 import eu.neydev.expbottle.gui.item.MenuItemType;
 import eu.neydev.expbottle.event.BottleThrowHandler;
 import eu.neydev.expbottle.service.PluginServices;
+import eu.neydev.expbottle.util.ExperienceFormula;
 import eu.neydev.expbottle.util.ItemBuilder;
 import eu.neydev.expbottle.util.Placeholders;
 import eu.neydev.expbottle.util.SignatureUtil;
@@ -76,7 +77,7 @@ class CoveragePushTest {
         File file = new File(plugin.getDataFolder(), "config.yml");
         String content = Files.readString(file.toPath(), StandardCharsets.UTF_8);
 
-        assertTrue(content.contains(from), "В конфиге нет '" + from + "'");
+        assertTrue(content.contains(from), "config.yml is missing '" + from + "'");
         Files.writeString(file.toPath(), content.replace(from, to), StandardCharsets.UTF_8);
         services.reload();
 
@@ -105,7 +106,7 @@ class CoveragePushTest {
     }
 
     @Test
-    @DisplayName("Операторы сравнения: числа и строки во всех ветках")
+    @DisplayName("Comparison operators: numbers and strings in all branches")
     void comparisonOperators() {
 
         Placeholders values = Placeholders.create()
@@ -125,9 +126,9 @@ class CoveragePushTest {
         assertTrue(ComparisonOperator.LESS_OR_EQUAL.matches("10", "10"));
         assertFalse(ComparisonOperator.LESS_OR_EQUAL.matches("11", "10"));
 
-        assertTrue(ComparisonOperator.EQUALS.matches("Ney", "ney"), "Равенство строк без учёта регистра");
+        assertTrue(ComparisonOperator.EQUALS.matches("Ney", "ney"), "String equality ignores the case");
         assertTrue(ComparisonOperator.NOT_EQUALS.matches("Ney", "Steve"));
-        assertTrue(ComparisonOperator.GREATER.matches("b", "a"), "Строки сравниваются лексикографически");
+        assertTrue(ComparisonOperator.GREATER.matches("b", "a"), "Strings compare lexicographically");
         assertFalse(ComparisonOperator.GREATER.matches("a", "b"));
         assertTrue(ComparisonOperator.GREATER_OR_EQUAL.matches("a", "a"));
         assertFalse(ComparisonOperator.GREATER_OR_EQUAL.matches("a", "b"));
@@ -152,13 +153,13 @@ class CoveragePushTest {
     }
 
     @Test
-    @DisplayName("ItemBuilder: все ветки меты и блеск без реестра зачарований")
+    @DisplayName("ItemBuilder: all meta branches and the glint without the enchantment registry")
     void itemBuilderAllBranches() {
 
         ItemStack item = new ItemBuilder(Material.PAPER, 2)
-                .setName("имя")
-                .setLore(List.of("один", "два"))
-                .addLore("три")
+                .setName("name")
+                .setLore(List.of("one", "two"))
+                .addLore("three")
                 .addItemFlags(ItemFlag.HIDE_ATTRIBUTES, ItemFlag.HIDE_ENCHANTS)
                 .setGlow(true)
                 .setUnbreakable(false)
@@ -168,12 +169,12 @@ class CoveragePushTest {
 
         assertEquals(5, item.getAmount());
         assertEquals(3, item.getItemMeta().getLore().size());
-        assertEquals("имя", item.getItemMeta().getDisplayName());
+        assertEquals("name", item.getItemMeta().getDisplayName());
 
         ItemStack air = new ItemBuilder(Material.AIR)
-                .setName("имя")
-                .setLore(List.of("лор"))
-                .addLore("ещё")
+                .setName("name")
+                .setLore(List.of("lore"))
+                .addLore("more")
                 .addItemFlags(ItemFlag.HIDE_ATTRIBUTES)
                 .setGlow(true)
                 .setUnbreakable(true)
@@ -185,14 +186,14 @@ class CoveragePushTest {
     }
 
     @Test
-    @DisplayName("Инвентарь: выдача со свободным местом и списание ровно стака")
+    @DisplayName("Inventory: giving with room and charging exactly a stack")
     void inventoryRemainingBranches() {
 
         PlayerMock player = granted("Ney");
 
         services.getInventoryService().giveOrDrop(player, new ItemStack(Material.GLASS_BOTTLE));
         assertEquals(1, services.getInventoryService().count(player, Material.GLASS_BOTTLE),
-                "Со свободным местом предмет попадает в инвентарь");
+                "With room the item lands in the inventory");
 
         assertTrue(services.getInventoryService().remove(player, Material.GLASS_BOTTLE, 1));
         assertEquals(0, services.getInventoryService().count(player, Material.GLASS_BOTTLE));
@@ -200,7 +201,7 @@ class CoveragePushTest {
     }
 
     @Test
-    @DisplayName("Подписи: hex без падений и регистронезависимая проверка")
+    @DisplayName("Signatures: hex without crashes and a case-insensitive check")
     void signatureRemainingBranches() {
 
         byte[] secret = SignatureUtil.loadOrCreateSecret(plugin.getDataFolder(), plugin.getLogger());
@@ -212,7 +213,7 @@ class CoveragePushTest {
     }
 
     @Test
-    @DisplayName("MenuService: право меню и запасное меню по умолчанию")
+    @DisplayName("MenuService: menu permission and the fallback default menu")
     void menuServiceRemainingBranches() throws IOException {
 
         writeMenu("aaa_first", """
@@ -240,22 +241,22 @@ class CoveragePushTest {
                     name: " "
                 """);
 
-        setConfig("default: exchange", "default: нет_такого_меню");
+        setConfig("default: exchange", "default: no_such_menu");
         services.reload();
 
         PlayerMock player = granted("Ney");
 
-        assertTrue(services.getMenuService().open(player), "Дефолт падает на первое по алфавиту");
+        assertTrue(services.getMenuService().open(player), "The default falls back to the first one alphabetically");
         assertEquals("aaa_first", services.getMenuService().findMenu(player).getName());
         player.closeInventory();
 
-        assertFalse(services.getMenuService().open(player, "locked"), "Меню с правом не пускает без права");
+        assertFalse(services.getMenuService().open(player, "locked"), "A menu with a permission does not let a player without it in");
         assertTrue(drain(player).contains("permission"));
 
     }
 
     @Test
-    @DisplayName("Действия: неизвестное меню, звук без параметров и валидный обмен")
+    @DisplayName("Actions: an unknown menu, a sound without parameters and a valid exchange")
     void actionExecutorRemainingBranches() {
 
         PlayerMock player = granted("Ney");
@@ -263,17 +264,17 @@ class CoveragePushTest {
         player.getInventory().addItem(new ItemStack(Material.GLASS_BOTTLE));
 
         services.getActionExecutor().execute(player, List.of(
-                new ClickAction(ActionType.OPEN, "нет_такого"),
+                new ClickAction(ActionType.OPEN, "no_such"),
                 new ClickAction(ActionType.SOUND, "ENTITY_EXPERIENCE_ORB_PICKUP"),
                 new ClickAction(ActionType.EXCHANGE, "5")
         ), Placeholders.create());
 
-        assertEquals(5, player.getLevel(), "[exchange] из действия списал уровни");
+        assertEquals(5, player.getLevel(), "[exchange] from the action charged the levels");
 
     }
 
     @Test
-    @DisplayName("Рендер: заполнение всех и пустых слотов, динамические предметы")
+    @DisplayName("Render: filling the all and empty slots, dynamic items")
     void rendererFills() throws IOException {
 
         writeMenu("fills", """
@@ -292,7 +293,7 @@ class CoveragePushTest {
                     type: INFO
                     slot: 4
                     material: BOOK
-                    name: "Уровень {player_level}"
+                    name: "Level {player_level}"
                     priority: 2
                   hidden:
                     type: CUSTOM
@@ -313,35 +314,33 @@ class CoveragePushTest {
         assertNotNull(menu);
 
         assertEquals(Material.BLACK_STAINED_GLASS_PANE, menu.getInventory().getItem(0).getType(),
-                "Свободные слоты закрыты заполнением empty");
+                "The free slots are covered by the empty fill");
         assertEquals(Material.BOOK, menu.getInventory().getItem(4).getType(),
-                "Информационный предмет перекрывает фон");
+                "The info item overrides the background");
         assertEquals(Material.BLACK_STAINED_GLASS_PANE, menu.getInventory().getItem(10).getType(),
-                "Слот скрытого предмета закрыт фоном");
+                "The slot of a hidden item is covered by the background");
 
         player.setLevel(8);
         menu.refresh();
         assertTrue(menu.getInventory().getItem(4).getItemMeta().getDisplayName().contains("8"),
-                "Динамический предмет перерисован");
+                "The dynamic item was redrawn");
 
     }
 
     @Test
-    @DisplayName("Бросок: выключенная выдача опыта не сыплет орбы")
-    void throwReleaseDisabled() throws IOException {
-
-        setConfig("release_on_break: true", "release_on_break: false");
+    @DisplayName("Throw: a break without any receiver drops orbs, the value is never lost")
+    void breakWithoutReceiverDropsOrbs() {
 
         BottleThrowHandler handler = new BottleThrowHandler(services);
         ItemStack bottle = services.getBottleFactory().create(10);
 
-        assertEquals(0, handler.handleBreak(bottle, null, null),
-                "При release_on_break: false орбов нет");
+        assertEquals(ExperienceFormula.expFromLevels(10), handler.handleBreak(bottle, null, null),
+                "Without a nearby player the stored levels must fall out as orbs");
 
     }
 
     @Test
-    @DisplayName("MenuItem: дефолты билдера и все геттеры")
+    @DisplayName("MenuItem: builder defaults and all getters")
     void menuItemDefaults() {
 
         MenuItem item = MenuItem.builder("plain").build();
@@ -374,7 +373,7 @@ class CoveragePushTest {
     }
 
     @Test
-    @DisplayName("Админ-команда с консоли: инфо и меню без игрока")
+    @DisplayName("The admin command from the console: info and menu without a player")
     void adminFromConsole() {
 
         Bukkit.dispatchCommand(Bukkit.getConsoleSender(), "neyexpbottle info");
@@ -384,18 +383,18 @@ class CoveragePushTest {
         admin.performCommand("neyexpbottle give Admin 5 x");
         assertTrue(drain(admin).contains("invalid") || drain(admin).contains("value"));
 
-        admin.performCommand("neyexpbottle чего_угодно");
+        admin.performCommand("neyexpbottle whatever");
         assertTrue(drain(admin).contains("commands"));
 
     }
 
     @Test
-    @DisplayName("Реестр меню: имена, размер и отсутствующие меню")
+    @DisplayName("The menu registry: names, size and missing menus")
     void menuRegistryGetters() {
 
         assertNotNull(services.getMenuRegistry().getNames());
         assertEquals(1, services.getMenuRegistry().size());
-        assertTrue(services.getMenuRegistry().byName("нет_такого").isEmpty());
+        assertTrue(services.getMenuRegistry().byName("no_such").isEmpty());
         assertNotNull(services.getMenuRegistry().getDefault("exchange"));
         assertNotNull(services.getMenuRegistry().getDefault(null));
 

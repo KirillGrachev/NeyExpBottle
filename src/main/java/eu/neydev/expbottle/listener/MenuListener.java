@@ -1,6 +1,7 @@
 package eu.neydev.expbottle.listener;
 
 import eu.neydev.expbottle.NeyExpBottle;
+import eu.neydev.expbottle.service.PluginServices;
 import eu.neydev.expbottle.event.MenuInteractionHandler;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
@@ -21,7 +22,11 @@ public class MenuListener implements Listener {
     private final MenuInteractionHandler menuInteractionHandler;
 
     public MenuListener(@NotNull NeyExpBottle plugin) {
-        this.menuInteractionHandler = new MenuInteractionHandler(plugin.getServices());
+        PluginServices services = plugin.getServices();
+        this.menuInteractionHandler = new MenuInteractionHandler(
+                services.getConfigManager(), services.getActionExecutor(), services.getMessageService(),
+                services.getSoundService(), services.getPlaceholderService(), services.getExchangeService(),
+                services.getDiagnosticsService(), services.getMenuService(), services.getAmountSelectionService());
     }
 
     @EventHandler(priority = EventPriority.HIGHEST)

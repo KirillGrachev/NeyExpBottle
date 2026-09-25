@@ -1,124 +1,51 @@
 package eu.neydev.expbottle.config;
 
 import eu.neydev.expbottle.NeyExpBottle;
+import eu.neydev.expbottle.config.section.AmountSection;
+import eu.neydev.expbottle.config.section.BottleSection;
+import eu.neydev.expbottle.config.section.ExchangeSection;
+import eu.neydev.expbottle.config.section.MenuSection;
+import eu.neydev.expbottle.config.section.MessagesSection;
+import eu.neydev.expbottle.config.section.PermissionsSection;
+import eu.neydev.expbottle.config.type.AmountSettings;
 import eu.neydev.expbottle.config.type.MessageKey;
 import eu.neydev.expbottle.config.type.MessageSettings;
 import eu.neydev.expbottle.config.type.SoundSettings;
-import eu.neydev.expbottle.util.ValueResolver;
 import org.bukkit.Material;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.configuration.file.YamlConfiguration;
 import org.jetbrains.annotations.NotNull;
 
 import java.io.File;
-import java.util.ArrayList;
-import java.util.EnumMap;
 import java.util.List;
 import java.util.Map;
 import java.util.logging.Logger;
 
 /**
  * Загрузка и кеширование config.yml.
+ *
+ * <p>Фасад над секционными ридерами пакета {@code config.section}: сам класс
+ * держит только флаги ядра и иммутабельные срезы секций, а разбор yaml живёт
+ * рядом с каждой секцией. Публичный контракт {@link PluginConfig} не меняется.</p>
  */
 public class ConfigManager implements PluginConfig {
 
     private static final String CONFIG_FILE = "config.yml";
 
-    private static final String PATH_ENABLED = "settings.enabled";
-    private static final String PATH_DEBUG = "settings.debug";
-
-    private static final String PATH_MENU_DEFAULT = "settings.menu.default";
-    private static final String PATH_MENU_AVAILABLE = "settings.menu.available_text";
-    private static final String PATH_MENU_UNAVAILABLE = "settings.menu.unavailable_text";
-
-    private static final String PATH_PERMISSIONS_ENABLED = "settings.permissions.enabled";
-    private static final String PATH_PERMISSION_USE = "settings.permissions.use";
-    private static final String PATH_PERMISSION_EXCHANGE = "settings.permissions.exchange";
-    private static final String PATH_PERMISSION_ADMIN = "settings.permissions.admin";
-    private static final String PATH_PERMISSION_BYPASS_COOLDOWN = "settings.permissions.bypass_cooldown";
-
-    private static final String PATH_BOTTLE_MATERIAL = "settings.bottle.material";
-    private static final String PATH_BOTTLE_NAME = "settings.bottle.name";
-    private static final String PATH_BOTTLE_LORE = "settings.bottle.lore";
-    private static final String PATH_BOTTLE_GLOW = "settings.bottle.glow";
-    private static final String PATH_BOTTLE_MAX_LEVELS = "settings.bottle.max_levels";
-    private static final String PATH_INSTRUCTION_ENABLED = "settings.bottle.instruction.enabled";
-    private static final String PATH_INSTRUCTION_TEXT = "settings.bottle.instruction.text";
-
-    private static final String PATH_PERMISSIONS_OP_BYPASS = "settings.permissions.op_bypass";
-
-    private static final String PATH_BOTTLE_THROWABLE = "settings.bottle.throwable";
-    private static final String PATH_BOTTLE_RELEASE = "settings.bottle.release_on_break";
-    private static final String PATH_BOTTLE_PICKUP_RADIUS = "settings.bottle.pickup_radius";
-    private static final String PATH_BOTTLE_BREAK_SOUND = "settings.bottle.break_sound";
-
-    private static final String PATH_EXCHANGE_REQUIRE_BOTTLES = "settings.exchange.require_empty_bottles";
-    private static final String PATH_EXCHANGE_BOTTLE_MATERIAL = "settings.exchange.empty_bottle_material";
-    private static final String PATH_EXCHANGE_SOUND = "settings.exchange.sound";
-    private static final String PATH_EXCHANGE_FAIL_SOUND = "settings.exchange.fail_sound";
-    private static final String PATH_COOLDOWN_ENABLED = "settings.exchange.cooldown.enabled";
-    private static final String PATH_COOLDOWN_MILLIS = "settings.exchange.cooldown.millis";
-
-
-    private static final Material DEFAULT_BOTTLE_MATERIAL = Material.EXPERIENCE_BOTTLE;
-    private static final Material DEFAULT_EMPTY_BOTTLE_MATERIAL = Material.GLASS_BOTTLE;
-
-    private static final String DEFAULT_BOTTLE_NAME =
-            "<gradient:#5AFB08:#A4FDB1>Experience Bottle</gradient> &8» &f{levels} LVL";
-
-    private static final List<String> DEFAULT_BOTTLE_LORE = List.of(
-            "&7&m                        ",
-            " &7▪ &fLevels: &e{levels}",
-            " &7▪ &fExperience inside: &e{exp}",
-            "&7&m                        "
-    );
-
-    private static final String DEFAULT_INSTRUCTION_TEXT = " #FFD700➤ &fRMB: &7use";
-
-    private static final String DEFAULT_MENU = "exchange";
-    private static final String DEFAULT_AVAILABLE_TEXT = "&a✔ &fAvailable";
-    private static final String DEFAULT_UNAVAILABLE_TEXT = "&c✖ &fNot enough levels";
-
     private final NeyExpBottle plugin;
     private final Logger logger;
-    private final Map<MessageKey, MessageSettings> messages = new EnumMap<>(MessageKey.class);
 
     private FileConfiguration config;
 
     private boolean enabled;
     private boolean debug;
 
-    private String defaultMenu;
-    private String availableText;
-    private String unavailableText;
-
-    private boolean permissionsEnabled;
-    private String permissionUse;
-    private String permissionExchange;
-    private String permissionAdmin;
-    private String permissionBypassCooldown;
-
-    private Material bottleMaterial;
-    private String bottleName;
-    private List<String> bottleLore;
-    private boolean bottleGlow;
-    private int maxBottleLevels;
-    private boolean instructionEnabled;
-    private String instructionText;
-
-    private boolean opBypass;
-    private boolean bottleThrowable;
-    private boolean releaseOnBreak;
-    private double pickupRadius;
-    private SoundSettings breakSound;
-
-    private boolean requireEmptyBottles;
-    private Material emptyBottleMaterial;
-    private SoundSettings exchangeSound;
-    private SoundSettings failSound;
-    private boolean cooldownEnabled;
-    private long cooldownMillis;
-
+    private MenuSection menu;
+    private PermissionsSection permissions;
+    private BottleSection bottle;
+    private ExchangeSection exchange;
+    private AmountSettings amount;
+    private Map<MessageKey, MessageSettings> messages = Map.of();
 
     public ConfigManager(@NotNull NeyExpBottle plugin) {
 
@@ -142,95 +69,60 @@ public class ConfigManager implements PluginConfig {
 
     private void cacheConfigValues() {
 
-        enabled = config.getBoolean(PATH_ENABLED, true);
-        debug = config.getBoolean(PATH_DEBUG, false);
+        enabled = config.getBoolean("settings.enabled", true);
+        debug = config.getBoolean("settings.debug", false);
 
-        defaultMenu = config.getString(PATH_MENU_DEFAULT, DEFAULT_MENU);
-        availableText = config.getString(PATH_MENU_AVAILABLE, DEFAULT_AVAILABLE_TEXT);
-        unavailableText = config.getString(PATH_MENU_UNAVAILABLE, DEFAULT_UNAVAILABLE_TEXT);
+        menu = MenuSection.read(config);
+        permissions = PermissionsSection.read(config);
+        bottle = BottleSection.read(config, logger);
+        exchange = ExchangeSection.read(config, logger);
+        amount = AmountSection.read(config, logger);
+        messages = MessagesSection.read(config, logger);
 
-        permissionsEnabled = config.getBoolean(PATH_PERMISSIONS_ENABLED, true);
-        permissionUse = config.getString(PATH_PERMISSION_USE, "expbottle.use");
-        permissionExchange = config.getString(PATH_PERMISSION_EXCHANGE, "expbottle.exchange");
-        permissionAdmin = config.getString(PATH_PERMISSION_ADMIN, "expbottle.admin");
-        permissionBypassCooldown = config.getString(PATH_PERMISSION_BYPASS_COOLDOWN, "expbottle.bypass.cooldown");
-
-        bottleMaterial = ValueResolver.material(
-                config.getString(PATH_BOTTLE_MATERIAL), DEFAULT_BOTTLE_MATERIAL, logger);
-        bottleName = config.getString(PATH_BOTTLE_NAME, DEFAULT_BOTTLE_NAME);
-        bottleLore = readLore(PATH_BOTTLE_LORE, DEFAULT_BOTTLE_LORE);
-        bottleGlow = config.getBoolean(PATH_BOTTLE_GLOW, true);
-        maxBottleLevels = Math.max(1, config.getInt(PATH_BOTTLE_MAX_LEVELS, 1000));
-        instructionEnabled = config.getBoolean(PATH_INSTRUCTION_ENABLED, true);
-        instructionText = config.getString(PATH_INSTRUCTION_TEXT, DEFAULT_INSTRUCTION_TEXT);
-
-        opBypass = config.getBoolean(PATH_PERMISSIONS_OP_BYPASS, false);
-        bottleThrowable = config.getBoolean(PATH_BOTTLE_THROWABLE, true);
-        releaseOnBreak = config.getBoolean(PATH_BOTTLE_RELEASE, true);
-        pickupRadius = Math.max(0.0, config.getDouble(PATH_BOTTLE_PICKUP_RADIUS, 4.0));
-        breakSound = readSound(PATH_BOTTLE_BREAK_SOUND,
-                SoundSettings.of("ENTITY_EXPERIENCE_ORB_PICKUP", 1.0f, 1.0f));
-
-        requireEmptyBottles = config.getBoolean(PATH_EXCHANGE_REQUIRE_BOTTLES, true);
-        emptyBottleMaterial = ValueResolver.material(
-                config.getString(PATH_EXCHANGE_BOTTLE_MATERIAL), DEFAULT_EMPTY_BOTTLE_MATERIAL, logger);
-        exchangeSound = readSound(PATH_EXCHANGE_SOUND,
-                SoundSettings.of("ENTITY_EXPERIENCE_ORB_PICKUP", 1.0f, 1.4f));
-        failSound = readSound(PATH_EXCHANGE_FAIL_SOUND,
-                SoundSettings.of("ENTITY_VILLAGER_NO", 1.0f, 1.0f));
-        cooldownEnabled = config.getBoolean(PATH_COOLDOWN_ENABLED, false);
-        cooldownMillis = Math.max(0L, config.getLong(PATH_COOLDOWN_MILLIS, 500L));
-
-
-        cacheMessages();
+        warnAboutRemovedSections();
 
     }
 
-    private void cacheMessages() {
+    /**
+     * Защита от дюпа больше не настраивается: если в файле осталась старая
+     * секция, объясняем один раз, что она игнорируется.
+     */
+    private void warnAboutRemovedSections() {
 
-        messages.clear();
-
-        for (MessageKey key : MessageKey.values()) {
-            messages.put(key, readMessage(key));
+        if (config.isSet("settings.anti_dupe")) {
+            logger.warning("settings.anti_dupe is ignored: dupe protection is built in "
+                    + "and always on. Remove the section from config.yml.");
         }
 
-    }
-
-    private @NotNull MessageSettings readMessage(@NotNull MessageKey key) {
-
-        String path = key.getPath();
-
-        if (!config.isConfigurationSection(path)) {
-            logger.warning("config.yml has no section '" + path + "' - message disabled");
-            return MessageSettings.disabled();
+        if (config.isSet("settings.amount_menu")) {
+            logger.warning("settings.amount_menu is ignored: amount selection lives in settings.amount "
+                    + "and right click cycles the amount on the exchange button. "
+                    + "Remove the old section from config.yml.");
         }
 
-        boolean messageEnabled = config.getBoolean(path + ".enabled", true);
-        List<String> text = config.getStringList(path + ".text");
-
-        return new MessageSettings(messageEnabled, List.copyOf(text));
-
-    }
-
-    private @NotNull List<String> readLore(@NotNull String path, @NotNull List<String> fallback) {
-
-        if (!config.isList(path)) {
-            return new ArrayList<>(fallback);
+        if (config.isSet("settings.amount.mode") || config.isSet("settings.amount.menu")
+                || config.isSet("settings.amount.hint_menu")) {
+            logger.warning("settings.amount.mode/menu/hint_menu are ignored: the amount menu is gone, "
+                    + "right click cycles the amount on the exchange button unless the switch is off. "
+                    + "Remove these keys from config.yml.");
         }
 
-        List<String> lore = config.getStringList(path);
-        return lore.isEmpty() ? new ArrayList<>(fallback) : new ArrayList<>(lore);
+        if (config.isSet("settings.bottle.release_on_break")) {
+            logger.warning("settings.bottle.release_on_break is removed: a broken bottle always pays out "
+                    + "(levels to the nearest player, orbs when nobody is nearby), so stored experience "
+                    + "can no longer be destroyed by a config key. Remove the key from config.yml.");
+        }
 
-    }
+        if (config.isSet("settings.bottle.throwable")) {
+            logger.warning("settings.bottle.throwable is removed: the throw behaviour follows "
+                    + "settings.bottle.safe_mode (safe: the bottle is used on the click; otherwise "
+                    + "the vanilla throw). Remove the key from config.yml.");
+        }
 
-    private @NotNull SoundSettings readSound(@NotNull String path, @NotNull SoundSettings fallback) {
-
-        return new SoundSettings(
-                config.getBoolean(path + ".enabled", fallback.enabled()),
-                config.getString(path + ".name", fallback.name()),
-                (float) config.getDouble(path + ".volume", fallback.volume()),
-                (float) config.getDouble(path + ".pitch", fallback.pitch())
-        );
+        if (config.isSet("settings.amount.hint_cycle")) {
+            logger.warning("settings.amount.hint_cycle was renamed to settings.amount.hint; "
+                    + "the old key is ignored.");
+        }
 
     }
 
@@ -254,134 +146,138 @@ public class ConfigManager implements PluginConfig {
 
     @Override
     public @NotNull String getDefaultMenu() {
-        return defaultMenu;
+        return menu.defaultMenu();
     }
 
     @Override
     public @NotNull String getAvailableText() {
-        return availableText;
+        return menu.availableText();
     }
 
     @Override
     public @NotNull String getUnavailableText() {
-        return unavailableText;
+        return menu.unavailableText();
+    }
+
+    @Override
+    public @NotNull String getUnavailableBottlesText() {
+        return menu.unavailableBottlesText();
     }
 
     @Override
     public boolean arePermissionsEnabled() {
-        return permissionsEnabled;
+        return permissions.enabled();
     }
 
     @Override
     public @NotNull String getPermissionUse() {
-        return permissionUse;
+        return permissions.use();
     }
 
     @Override
     public @NotNull String getPermissionExchange() {
-        return permissionExchange;
+        return permissions.exchange();
     }
 
     @Override
     public @NotNull String getPermissionAdmin() {
-        return permissionAdmin;
+        return permissions.admin();
     }
 
     @Override
     public @NotNull String getPermissionBypassCooldown() {
-        return permissionBypassCooldown;
+        return permissions.bypassCooldown();
     }
 
     @Override
     public @NotNull Material getBottleMaterial() {
-        return bottleMaterial;
+        return bottle.material();
     }
 
     @Override
     public @NotNull String getBottleName() {
-        return bottleName;
+        return bottle.name();
     }
 
     @Override
     public @NotNull List<String> getBottleLore() {
-        return bottleLore;
+        return bottle.lore();
     }
 
     @Override
     public boolean isBottleGlowEnabled() {
-        return bottleGlow;
+        return bottle.glow();
     }
 
     @Override
     public boolean isInstructionEnabled() {
-        return instructionEnabled;
+        return bottle.instructionEnabled();
     }
 
     @Override
     public @NotNull String getInstructionText() {
-        return instructionText;
+        return bottle.instructionText();
     }
 
     @Override
     public int getMaxBottleLevels() {
-        return maxBottleLevels;
+        return bottle.maxLevels();
     }
 
     @Override
     public boolean isOpBypassEnabled() {
-        return opBypass;
+        return permissions.opBypass();
     }
 
     @Override
-    public boolean isBottleThrowable() {
-        return bottleThrowable;
+    public boolean isSafeMode() {
+        return bottle.safeMode();
     }
 
     @Override
-    public boolean isReleaseOnBreak() {
-        return releaseOnBreak;
+    public @NotNull AmountSettings getAmount() {
+        return amount;
     }
 
     @Override
     public double getPickupRadius() {
-        return pickupRadius;
+        return bottle.pickupRadius();
     }
 
     @Override
     public @NotNull SoundSettings getBreakSound() {
-        return breakSound;
+        return bottle.breakSound();
     }
 
     @Override
     public boolean areEmptyBottlesRequired() {
-        return requireEmptyBottles;
+        return exchange.requireEmptyBottles();
     }
 
     @Override
     public @NotNull Material getEmptyBottleMaterial() {
-        return emptyBottleMaterial;
+        return exchange.emptyBottleMaterial();
     }
 
     @Override
     public @NotNull SoundSettings getExchangeSound() {
-        return exchangeSound;
+        return exchange.exchangeSound();
     }
 
     @Override
     public @NotNull SoundSettings getFailSound() {
-        return failSound;
+        return exchange.failSound();
     }
 
     @Override
     public boolean isCooldownEnabled() {
-        return cooldownEnabled;
+        return exchange.cooldownEnabled();
     }
 
     @Override
     public long getCooldownMillis() {
-        return cooldownMillis;
+        return exchange.cooldownMillis();
     }
-
 
     @Override
     public boolean isMessageEnabled(@NotNull MessageKey key) {

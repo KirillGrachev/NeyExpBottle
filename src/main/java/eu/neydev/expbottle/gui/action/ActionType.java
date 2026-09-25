@@ -41,6 +41,9 @@ public enum ActionType {
     /** Обменять уровни на бутылку: {@code [exchange] 5} или {@code [exchange] tier_5}. */
     EXCHANGE("exchange"),
 
+    /** Вернуться в родительское меню (то, из которого открыли текущее). */
+    BACK("back"),
+
     /** Отправить сообщение всем игрокам сервера. */
     BROADCAST("broadcast"),
 

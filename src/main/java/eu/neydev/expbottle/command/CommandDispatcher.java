@@ -21,6 +21,7 @@ public class CommandDispatcher {
 
             PluginCommand pluginCommand = plugin.getCommand(command.getCommandName());
 
+            // Недостижимо в тестах: команды объявлены в plugin.yml
             if (pluginCommand == null) {
 
                 plugin.getLogger().warning("Command /" + command.getCommandName()

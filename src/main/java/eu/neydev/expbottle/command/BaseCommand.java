@@ -4,31 +4,34 @@ import eu.neydev.expbottle.NeyExpBottle;
 import eu.neydev.expbottle.service.MessageService;
 import eu.neydev.expbottle.service.PermissionService;
 import eu.neydev.expbottle.service.PluginServices;
-import org.bukkit.Bukkit;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
 import org.bukkit.command.TabCompleter;
-import org.bukkit.entity.Player;
 import org.jetbrains.annotations.NotNull;
 
-import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
-import java.util.Locale;
 
 /**
- * База для команд плагина: доступ к сервисам и мелкие helpers для tab-complete.
+ * База для команд плагина, зарегистрированных в plugin.yml.
+ *
+ * <p>Держит {@link CommandContext} с доступом к сервисам и помощникам и отдаёт
+ * его подкомандам, поэтому логика доступа и tab-complete не дублируется.
+ * Напрямую база оставляет только те помощники, которыми пользуются сами
+ * команды верхнего уровня.</p>
  */
 public abstract class BaseCommand implements CommandExecutor, TabCompleter {
 
     protected final NeyExpBottle plugin;
+    protected final CommandContext context;
 
     private final String commandName;
 
     protected BaseCommand(@NotNull NeyExpBottle plugin, @NotNull String commandName) {
         this.plugin = plugin;
         this.commandName = commandName;
+        this.context = new CommandContext(plugin);
     }
 
     /**
@@ -41,26 +44,15 @@ public abstract class BaseCommand implements CommandExecutor, TabCompleter {
     }
 
     protected @NotNull PluginServices services() {
-        return plugin.getServices();
+        return context.services();
     }
 
     protected @NotNull MessageService messages() {
-        return services().getMessageService();
+        return context.messages();
     }
 
     protected @NotNull PermissionService permissions() {
-        return services().getPermissionService();
-    }
-
-    protected @NotNull String version() {
-        return plugin.getDescription().getVersion();
-    }
-
-    protected @NotNull String author() {
-
-        List<String> authors = plugin.getDescription().getAuthors();
-        return authors.isEmpty() ? "Ney" : String.join(", ", authors);
-
+        return context.permissions();
     }
 
     @Override
@@ -73,45 +65,6 @@ public abstract class BaseCommand implements CommandExecutor, TabCompleter {
      * Отсеивает варианты подсказки по введённому префиксу.
      */
     protected @NotNull List<String> filter(@NotNull List<String> values, @NotNull String prefix) {
-
-        String normalized = prefix.toLowerCase(Locale.ROOT);
-        List<String> result = new ArrayList<>();
-
-        for (String value : values) {
-
-            if (value.toLowerCase(Locale.ROOT).startsWith(normalized)) {
-                result.add(value);
-            }
-
-        }
-
-        return result;
-
-    }
-
-    protected @NotNull List<String> playerNames() {
-
-        List<String> names = new ArrayList<>();
-
-        for (Player player : Bukkit.getOnlinePlayers()) {
-            names.add(player.getName());
-        }
-
-        return names;
-
-    }
-
-    protected boolean isSubcommand(@NotNull String raw, @NotNull String... expected) {
-
-        for (String value : expected) {
-
-            if (value.equalsIgnoreCase(raw)) {
-                return true;
-            }
-
-        }
-
-        return false;
-
+        return context.filter(values, prefix);
     }
 }

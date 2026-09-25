@@ -31,7 +31,7 @@ class ConditionParserTest {
     }
 
     @Test
-    @DisplayName("Пустое условие всегда истинно")
+    @DisplayName("An empty condition is always true")
     void blankIsAlwaysTrue() {
 
         assertInstanceOf(Condition.AlwaysTrue.class, Condition.parse(null));
@@ -43,7 +43,7 @@ class ConditionParserTest {
     }
 
     @Test
-    @DisplayName("Числовые сравнения")
+    @DisplayName("Numeric comparisons")
     void numericComparisons() {
 
         assertTrue(evaluate("{player_level} >= 42"));
@@ -57,19 +57,19 @@ class ConditionParserTest {
     }
 
     @Test
-    @DisplayName("Строковые сравнения, в том числе в кавычках")
+    @DisplayName("String comparisons, including quoted ones")
     void stringComparisons() {
 
         assertTrue(evaluate("{player} == Ney"));
         assertTrue(evaluate("{player} == \"Ney\""));
-        assertTrue(evaluate("{player} == 'ney'"), "Равенство строк должно игнорировать регистр");
+        assertTrue(evaluate("{player} == 'ney'"), "String equality must ignore the case");
         assertTrue(evaluate("{player} != Steve"));
         assertFalse(evaluate("{player} == Steve"));
 
     }
 
     @Test
-    @DisplayName("Логические операторы и скобки")
+    @DisplayName("Logical operators and parentheses")
     void logicalOperators() {
 
         assertTrue(evaluate("{player_level} >= 10 && {player_exp} > 1000"));
@@ -82,7 +82,7 @@ class ConditionParserTest {
     }
 
     @Test
-    @DisplayName("Приоритет: && сильнее ||")
+    @DisplayName("Precedence: && is stronger than ||")
     void andHasHigherPrecedence() {
 
         // false && false || true даёт true: у && приоритет выше
@@ -93,7 +93,7 @@ class ConditionParserTest {
     }
 
     @Test
-    @DisplayName("Значение без оператора трактуется как «не пусто и не false»")
+    @DisplayName("A value without an operator means not empty and not false")
     void truthiness() {
 
         assertTrue(evaluate("{player}"));
@@ -106,7 +106,7 @@ class ConditionParserTest {
     }
 
     @Test
-    @DisplayName("Плейсхолдеры подставляются до сравнения")
+    @DisplayName("Placeholders are substituted before the comparison")
     void placeholdersAreSubstituted() {
 
         Placeholders values = Placeholders.create().set("levels", 250);
@@ -118,18 +118,18 @@ class ConditionParserTest {
     }
 
     @Test
-    @DisplayName("Некорректные выражения отклоняются")
+    @DisplayName("Invalid expressions are rejected")
     void malformedExpressions() {
 
         assertThrows(IllegalArgumentException.class, () -> Condition.parse("{player_level} >="));
         assertThrows(IllegalArgumentException.class, () -> Condition.parse("({player_level} > 5"));
         assertThrows(IllegalArgumentException.class, () -> Condition.parse("{player} == Ney extra"));
-        assertThrows(IllegalArgumentException.class, () -> Condition.parse("\"незакрытая кавычка"));
+        assertThrows(IllegalArgumentException.class, () -> Condition.parse("\"unclosed quote"));
 
     }
 
     @Test
-    @DisplayName("Дерево условия имеет ожидаемую структуру")
+    @DisplayName("The condition tree has the expected structure")
     void parsesIntoExpectedTree() {
 
         Condition condition = Condition.parse("{a} > 1 && !{b}");
@@ -148,7 +148,7 @@ class ConditionParserTest {
     }
 
     @Test
-    @DisplayName("Дробные числа сравниваются корректно")
+    @DisplayName("Fractional numbers compare correctly")
     void decimalComparisons() {
 
         assertTrue(Condition.parse("{levels} >= 4.5")

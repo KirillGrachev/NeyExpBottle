@@ -1,5 +1,6 @@
 package eu.neydev.expbottle.config;
 
+import eu.neydev.expbottle.config.type.AmountSettings;
 import eu.neydev.expbottle.config.type.MessageKey;
 import eu.neydev.expbottle.config.type.SoundSettings;
 import org.bukkit.Material;
@@ -24,6 +25,8 @@ public interface PluginConfig {
     @NotNull String getAvailableText();
 
     @NotNull String getUnavailableText();
+
+    @NotNull String getUnavailableBottlesText();
 
     boolean arePermissionsEnabled();
 
@@ -51,13 +54,15 @@ public interface PluginConfig {
 
     boolean isOpBypassEnabled();
 
-    boolean isBottleThrowable();
 
-    boolean isReleaseOnBreak();
+    boolean isSafeMode();
+
 
     double getPickupRadius();
 
     @NotNull SoundSettings getBreakSound();
+
+    @NotNull AmountSettings getAmount();
 
     boolean areEmptyBottlesRequired();
 

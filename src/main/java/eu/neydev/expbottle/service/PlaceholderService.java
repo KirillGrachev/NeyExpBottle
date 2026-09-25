@@ -1,7 +1,8 @@
 package eu.neydev.expbottle.service;
 
 import eu.neydev.expbottle.config.PluginConfig;
-import eu.neydev.expbottle.registry.BottleRegistry;
+import eu.neydev.expbottle.registry.MenuRegistry;
+import eu.neydev.expbottle.model.ExchangeOutcome;
 import eu.neydev.expbottle.util.ExperienceFormula;
 import eu.neydev.expbottle.util.HexColorUtil;
 import eu.neydev.expbottle.util.Placeholders;
@@ -27,15 +28,24 @@ public class PlaceholderService {
     private final PluginConfig config;
     private final ExperienceService experienceService;
     private final DiagnosticsService diagnosticsService;
+    private final AmountSelectionService amountSelectionService;
+    private final CooldownService cooldownService;
+    private final MenuRegistry menuRegistry;
 
     private volatile TextProcessor textProcessor;
 
     public PlaceholderService(@NotNull PluginConfig config,
                               @NotNull ExperienceService experienceService,
-                              @NotNull DiagnosticsService diagnosticsService) {
+                              @NotNull DiagnosticsService diagnosticsService,
+                              @NotNull AmountSelectionService amountSelectionService,
+                              @NotNull CooldownService cooldownService,
+                              @NotNull MenuRegistry menuRegistry) {
         this.config = config;
         this.experienceService = experienceService;
         this.diagnosticsService = diagnosticsService;
+        this.amountSelectionService = amountSelectionService;
+        this.cooldownService = cooldownService;
+        this.menuRegistry = menuRegistry;
     }
 
     /**
@@ -55,13 +65,87 @@ public class PlaceholderService {
      */
     public @NotNull Placeholders forPlayer(@NotNull Player player) {
 
+        int selected = amountSelectionService.getSelected(player);
+        String label = amountSelectionService.label(selected);
+        String allLabel = config.getAmount().allLabel();
+
         return Placeholders.create()
                 .set("player", player.getName())
                 .set("player_level", player.getLevel())
                 .set("player_exp", experienceService.getTotalExperience(player))
                 .set("player_progress", experienceService.getProgressPercent(player))
                 .set("player_levels", formatLevels(experienceService.getExactLevels(player)))
-                .set("max_levels", config.getMaxBottleLevels());
+                .set("max_levels", config.getMaxBottleLevels())
+                .set("amount_selected", amountSelectionService.raw(selected))
+                .set("amount_label", label)
+                .set("all_label", allLabel)
+                .set("amount_hint", amountHint(label, allLabel));
+
+    }
+
+    /**
+     * Подсказка правой кнопки из {@code settings.amount.hint} с уже раскрытыми
+     * внутренними плейсхолдерами.
+     *
+     * <p>Шаблон подсказки сам содержит {@code {amount_label}}: раскрываем его
+     * заранее, чтобы значение {@code {amount_hint}} приходило в лор готовым и
+     * ни один путь вывода не показывал нераскрытые скобки.</p>
+     *
+     * @param label   подпись выбранного количества
+     * @param allLabel подпись варианта «всё»
+     * @return готовый шаблон подсказки (цвета ещё не применены)
+     */
+    private @NotNull String amountHint(@NotNull String label, @NotNull String allLabel) {
+
+        return Placeholders.create()
+                .set("amount_label", label)
+                .set("all_label", allLabel)
+                .apply(config.getAmount().hint());
+
+    }
+
+    /**
+     * Плейсхолдеры окна меню: игровые плюс имя меню, остаток кулдауна
+     * и состояние переключателя количества {@code {amount_cycle}}.
+     *
+     * @param player   игрок
+     * @param menuName имя открытого меню
+     * @return набор значений
+     */
+    public @NotNull Placeholders forMenu(@NotNull Player player, @NotNull String menuName) {
+
+        Placeholders placeholders = forPlayer(player)
+                .set("menu", menuName)
+                .set("cooldown", cooldownService.getRemainingSeconds(player));
+
+        // Выключенный переключатель не рекламирует себя: подсказка про ПКМ
+        // гаснет, а витрина получает {amount_cycle} для условий и лора
+        boolean cycleEnabled = cycleEnabled(menuName);
+
+        placeholders.set("amount_cycle", cycleEnabled);
+
+        if (!cycleEnabled) {
+            placeholders.set("amount_hint", "");
+        }
+
+        return placeholders;
+
+    }
+
+    /**
+     * Разрешено ли переключение количества в меню: собственное
+     * {@code cycle_amount} меню важнее глобального тумблера.
+     *
+     * @param menuName имя меню
+     * @return true если правый клик переключает количество
+     */
+    private boolean cycleEnabled(@NotNull String menuName) {
+
+        boolean global = config.getAmount().cycleOnRightClick();
+
+        return menuRegistry.byName(menuName)
+                .map(definition -> definition.cycleEnabled(global))
+                .orElse(global);
 
     }
 
@@ -85,16 +169,39 @@ public class PlaceholderService {
     /**
      * Плейсхолдеры кнопки обмена.
      *
-     * @param levels    уровни кнопки
-     * @param tierId    идентификатор предмета
-     * @param available хватает ли игроку опыта
+     * @param levels       уровни кнопки
+     * @param tierId       идентификатор предмета
+     * @param availability исход проверки ресурсов сервиса обмена
      * @return набор значений
      */
-    public @NotNull Placeholders forTier(int levels, @NotNull String tierId, boolean available) {
+    public @NotNull Placeholders forTier(int levels, @NotNull String tierId,
+                                         @NotNull ExchangeOutcome availability) {
 
         return forLevels(levels)
                 .set("tier", tierId)
-                .set("available", available ? config.getAvailableText() : config.getUnavailableText());
+                .set("available", availableText(availability));
+
+    }
+
+    /**
+     * Текст статуса {@code {available}}: причину отказа определяет вызывающий
+     * код, а текст — конфиг, поэтому витрина не врала о причине: «не хватает
+     * уровней» и «не хватает пустых пузырьков» — разные строки.
+     *
+     * @param availability исход проверки ресурсов
+     * @return настроенный текст статуса
+     */
+    private @NotNull String availableText(@NotNull ExchangeOutcome availability) {
+
+        if (availability.isSuccess()) {
+            return config.getAvailableText();
+        }
+
+        if (availability == ExchangeOutcome.NOT_ENOUGH_BOTTLES) {
+            return config.getUnavailableBottlesText();
+        }
+
+        return config.getUnavailableText();
 
     }
 

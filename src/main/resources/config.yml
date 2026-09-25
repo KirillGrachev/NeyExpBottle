@@ -2,6 +2,7 @@
 # player and keeps the fractional bar progress (12.4 - 5 = 7.4).
 #
 # PLACEHOLDERS - work in every text of this file and in menus/*.yml.
+# They are listed here once on purpose: do not repeat them next to messages.
 #
 #   Player and experience
 #     {player}            player name
@@ -17,15 +18,22 @@
 #     {used_bottles}      empty bottles spent by the exchange
 #     {max_levels}        level cap inside one bottle (settings.bottle.max_levels)
 #     {tier}              exchange button id (tier_5); wrong argument in invalid_tier
-#     {amount}            bottles given by /neyexpbottle give
+#     {amount}            bottles created by an exchange or /neyexpbottle give
+#
+#   Amount selection (settings.amount)
+#     {amount_selected}   raw selected amount, ready for [exchange]: 1, 16, all
+#     {amount_label}      label of the selected amount (all_label for all)
+#     {all_label}         label of the all option (settings.amount.all_label)
+#     {amount_hint}       right-click hint from settings.amount.hint
 #
 #   Menus
 #     {menu}              menu name
-#     {available}         settings.menu.available_text or unavailable_text
+#     {available}         settings.menu.available_text, unavailable_text
+#                         or unavailable_bottles_text (by refusal reason)
 #     {cooldown}          cooldown left, seconds
 #
 #   Service (info, reload, help)
-#     {tiers}             exchange buttons loaded
+#     {tiers}             exchange tiers loaded
 #     {time}              reload time, ms
 #     {version}           plugin version
 #     {author}            author from plugin.yml
@@ -41,8 +49,9 @@ settings:
 
   menu:
     default: exchange # Menu opened by /exp without arguments (file menus/<name>.yml)
-    available_text: "&a✔ &fAvailable" # Substituted into {available}
-    unavailable_text: "&c✖ &fNot enough levels"
+    available_text: " &a✔ &fAvailable" # Substituted into {available}; leading space aligns it with the lore
+    unavailable_text: " &c✖ &fNot enough levels" # Shown when levels are short; also the fallback for other refusals
+    unavailable_bottles_text: " &c✖ &fNot enough empty bottles" # Shown when empty bottles are short
 
   permissions:
     enabled: true # Enable the permission system
@@ -56,21 +65,21 @@ settings:
     material: EXPERIENCE_BOTTLE
     glow: true # Enchantment glint without a visible enchantment
     max_levels: 1000 # Level cap inside one bottle (protects against edited NBT)
-    throwable: true # Right click throws the bottle like a vanilla experience bottle
-    release_on_break: true # A broken bottle grants its levels to a nearby player
+    safe_mode: false # Right click uses the bottle at once: the levels arrive immediately, no projectile,
+                     # no orbs; false keeps the vanilla throw with the break reward
     pickup_radius: 4.0 # How close a player must stand to receive the levels on break
     break_sound:
       enabled: true
       name: ENTITY_EXPERIENCE_ORB_PICKUP
       volume: 1.0
       pitch: 1.0
-    name: "<gradient:#5AFB08:#A4FDB1>Experience Bottle</gradient> &8» &f{levels} LVL"
+    name: "<gradient:#5AFB08:#A4FDB1>Experience bottle</gradient> &8» &f{levels} LVL"
     lore:
-      - " &7▪ &fLevels inside: &e{levels}"
-      - " &7▪ &fExperience inside: &e{exp}"
+      - " &fLevels inside: &e{levels}"
+      - " &fExperience inside: &e{exp}"
     instruction:
       enabled: true # Append the usage hint to the end of the lore
-      text: " #FFD700➤ &fRMB: &7throw to release"
+      text: "&fRMB: &7throw to release"
 
   exchange:
     require_empty_bottles: true # Require an empty bottle for the exchange
@@ -89,44 +98,72 @@ settings:
       enabled: false # Protection against clicking the menu faster than the server
       millis: 500
 
+  amount:
+    amounts: ["1", "16", "64", "all"] # Amount options; all - as many bottles as the player can afford
+    all_label: "ALL" # Label of the all option in the switcher and hints
+    switcher: # Lines drawn in place of {amount_options} on exchange buttons
+      active: " &a» &f{label} &7bottle(s) &8(&e{cost} &7lvl&8)"
+      inactive: " &7» {label} &7bottle(s) &8(&e{cost} &7lvl&8)"
+    hint: "&eRMB: &7switch the amount &8(&f{amount_label}&8)"
+    cycle_on_right_click: true # RMB on an exchange button cycles the amount; false makes RMB a plain
+                             # click and hides the standalone {amount_options} / {amount_hint} lore lines
+                             # (per-menu override: cycle_amount in the menu file)
+    cycle_sound:
+      enabled: true
+      name: UI_BUTTON_CLICK
+      volume: 0.5
+      pitch: 1.4
 
 messages:
 
   only_players:
     enabled: true
     text:
-      - " #efff5e[⚠] #ecff45This command is only available to players."
+      - ""
+      - " #FF6B6B[✖] &fThis command is only available to players."
+      - ""
 
   no_permission:
     enabled: true
     text:
-      - " #efff5e[⚠] #ecff45You don't have permission for this."
+      - ""
+      - " #FF6B6B[✖] &fYou don't have permission for this."
+      - ""
 
   plugin_disabled:
     enabled: true
     text:
-      - " #efff5e[⚠] #ecff45The experience exchange is currently disabled."
+      - ""
+      - " #FF6B6B[✖] &fThe experience exchange is currently disabled."
+      - ""
 
-  # {menu}
   menu_not_found:
     enabled: true
     text:
+      - ""
       - " #FF6B6B[✖] &fMenu &e{menu} &fwas not found in the menus folder."
+      - ""
 
   menu_denied:
     enabled: true
     text:
+      - ""
       - " #FF6B6B[✖] &fThis menu is not available right now."
+      - ""
 
   menu_usage:
     enabled: true
     text:
-      - " #efff5e[⚠] #ecff45Usage: &f/neyexpbottle menu <name> [player]"
+      - ""
+      - " #efff5e[⚠] &fUsage: &7/neyexpbottle menu <name> [player]"
+      - ""
 
   exchange_usage:
     enabled: true
     text:
-      - " #efff5e[⚠] #ecff45Usage: &f/exp exchange <levels|id>"
+      - ""
+      - " #efff5e[⚠] &fUsage: &7/exp exchange <levels|id>"
+      - ""
 
   not_enough_levels:
     enabled: true
@@ -143,49 +180,57 @@ messages:
       - " #FF6B6B[✖] &fYou need an empty bottle &7(&fGLASS_BOTTLE&7)&f."
       - ""
 
-  # {cooldown} - seconds left
   on_cooldown:
     enabled: true
     text:
-      - " #efff5e[⌛] #ecff45Wait &e{cooldown} &7more seconds."
+      - ""
+      - " #efff5e[⚠] &fWait &e{cooldown} &7more seconds."
+      - ""
 
   exchange_cancelled:
     enabled: false # Another plugin cancelled the exchange (silent by default)
     text:
-      - " #efff5e[⚠] #ecff45The exchange was cancelled."
+      - ""
+      - " #efff5e[⚠] &fThe exchange was cancelled."
+      - ""
 
-  # {levels} {exp} {used_bottles} {player_level} {player_exp}
   bottle_created:
     enabled: true
     text:
       - ""
-      - " #4ECDC4[✔] &fYou exchanged &e{levels} &flevels for an experience bottle."
+      - " #4ECDC4[✔] &fYou exchanged &e{levels} &flevels for &e{amount}x &fexperience bottle(s)."
       - " &7Left: &f{player_levels} &7levels &8(&f{player_exp} &7exp&8)"
       - ""
 
   bottle_broken:
     enabled: true
     text:
+      - ""
       - " #FF6B6B[✖] &fThis experience bottle is damaged."
+      - ""
 
   bottle_forged:
     enabled: true
     text:
+      - ""
       - " #FF6B6B[✖] &fThis bottle was not created by the server and is rejected."
+      - ""
 
   reload_start:
     enabled: true
     text:
-      - " #efff5e[↻] #ecff45Reloading configuration..."
+      - ""
+      - " #efff5eReloading configuration..."
+      - ""
 
-  # {tiers}
   reload_success:
     enabled: true
     text:
+      - ""
       - " #4ECDC4[✔] &fConfiguration reloaded."
       - " &7Exchange tiers: &e{tiers}"
+      - ""
 
-  # {time}
   reload_time:
     enabled: true
     text:
@@ -194,56 +239,66 @@ messages:
   reload_error:
     enabled: true
     text:
+      - ""
       - " #FF6B6B[✖] &fFailed to reload the configuration, see the console."
+      - ""
 
-  # {player} {levels} {amount}
   give_success:
     enabled: true
     text:
+      - ""
       - " #4ECDC4[✔] &fGiven &e{amount}x &fbottles with &e{levels} &flevels to &e{player}&f."
+      - ""
 
   give_received:
     enabled: true
     text:
+      - ""
       - " #4ECDC4[✔] &fYou received &e{amount}x &fbottle(s) with &e{levels} &flevels."
+      - ""
 
   give_usage:
     enabled: true
     text:
-      - " #efff5e[⚠] #ecff45Usage: &f/neyexpbottle give <player> <levels|id> [amount]"
+      - ""
+      - " #efff5e[⚠] &fUsage: &7/neyexpbottle give <player> <levels|id> [amount]"
+      - ""
 
-  # {player}
   player_not_found:
     enabled: true
     text:
+      - ""
       - " #FF6B6B[✖] &fPlayer &e{player} &fis not online."
+      - ""
 
-  # {tier}
   invalid_tier:
     enabled: true
     text:
+      - ""
       - " #FF6B6B[✖] &fExchange tier &e{tier} &fdoes not exist in menus/."
+      - ""
 
-  # {levels} {max_levels}
   invalid_amount:
     enabled: true
     text:
+      - ""
       - " #FF6B6B[✖] &fInvalid value &e{levels}&7. Allowed: &f1 - {max_levels}&7."
+      - ""
 
   info:
     enabled: true
     text:
       - ""
       - "&#4ECDC4NeyExpBottle &#8ce0ff» &#4ECDC4diagnostics:"
-      - "&fPlayer &8- &7{player}"
-      - "&fLevel &8- &7{player_level} &8(&7{player_progress}%&8)"
-      - "&fExperience &8- &7{player_exp}"
-      - "&fExchange tiers &8- &7{tiers}"
-      - "&fBottles created &8- &7{created}"
-      - "&fBottles used &8- &7{used}"
-      - "&fDenied exchanges &8- &7{denied}"
-      - "&fSuspicious events &8- &7{suspicious}"
-      - "&fPlugin version &8- &7{version} &8| &fCore &8- &7{server}"
+      - " &fPlayer: &e{player}"
+      - " &fLevel: &e{player_level} &8(&e{player_progress}%&8)"
+      - " &fExperience: &e{player_exp}"
+      - " &fExchange tiers: &e{tiers}"
+      - " &fBottles created: &e{created}"
+      - " &fBottles used: &e{used}"
+      - " &fDenied exchanges: &e{denied}"
+      - " &fSuspicious events: &e{suspicious}"
+      - " &fPlugin version: &e{version} &8| &fCore: &e{server}"
       - ""
 
   help:
@@ -251,11 +306,11 @@ messages:
     text:
       - ""
       - "&#4ECDC4NeyExpBottle &#8ce0ff» &#4ECDC4NeyExpBottle commands:"
-      - "&f/exp &8- &7open the default exchange menu"
-      - "&f/exp exchange <levels|id> &8- &7exchange levels for a bottle"
-      - "&f/exp open <menu> &8- &7open a specific menu"
-      - "&f/neyexpbottle reload &8- &7reload the configuration"
-      - "&f/neyexpbottle give <player> <levels|id> [amount] &8- &7give a bottle"
-      - "&f/neyexpbottle info [player] &8- &7diagnostics"
-      - "&f/neyexpbottle menu <name> [player] &8- &7open any menu"
+      - " &f/exp &8- &7open the default exchange menu"
+      - " &f/exp exchange <levels|id> [amount|all] &8- &7exchange levels for bottles"
+      - " &f/exp open <menu> &8- &7open a specific menu"
+      - " &f/neyexpbottle reload &8- &7reload the configuration"
+      - " &f/neyexpbottle give <player> <levels|id> [amount] &8- &7give a bottle"
+      - " &f/neyexpbottle info [player] &8- &7diagnostics"
+      - " &f/neyexpbottle menu <name> [player] &8- &7open any menu"
       - ""

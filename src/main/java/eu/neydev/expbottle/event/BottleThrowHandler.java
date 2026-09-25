@@ -35,6 +35,12 @@ import org.jetbrains.annotations.NotNull;
  * Орбы сыпятся только когда рядом никого нет. Количество подменяется в
  * {@link ExpBottleEvent} — единственной точке, где можно изменить награду,
  * не трогая NMS-код.</p>
+ *
+ * <p>Safe-режим ({@code settings.bottle.safe_mode}) — второе поведение, выводимое
+ * в коде, а не отдельным рубильником: бутылка используется в момент клика.
+ * Уровни сразу уходят ближайшему игроку в радиусе подбора — то есть самому
+ * метнувшему, — снаряд не создаётся вовсе, и орбов не бывает структурно.
+ * Обычный режим остаётся ванильным броском.</p>
  */
 public class BottleThrowHandler {
 
@@ -59,9 +65,10 @@ public class BottleThrowHandler {
     /**
      * Решает, разрешить ли бросок нашей бутылки.
      *
-     * <p>Событие не отменяется для обычных бутылок и для наших, которые можно
-     * бросить: отмена нужна только когда бросок выключен конфигом, бутылка
-     * повреждена или подделана.</p>
+     * <p>Событие не отменяется для обычных бутылок и для наших в обычном режиме:
+     * отмена нужна только когда бутылка повреждена или подделана, предмет не
+     * является снарядом, либо включён safe-режим — тогда бутылка используется
+     * в момент клика и ванильный снаряд не создаётся.</p>
      *
      * @param event событие взаимодействия
      */
@@ -98,9 +105,10 @@ public class BottleThrowHandler {
             return;
         }
 
-        // Бросаемый снаряд существует только у EXPERIENCE_BOTTLE: с другим
-        // материалом предмета из конфига клик просто гасим.
-        if (!config.isBottleThrowable() || item.getType() != Material.EXPERIENCE_BOTTLE) {
+        // Ванильный снаряд существует только у EXPERIENCE_BOTTLE: с другим
+        // материалом предмета из конфига клик в обычном режиме просто гасим.
+        // Safe-режиму материал не важен: бутылка используется без снаряда
+        if (!config.isSafeMode() && item.getType() != Material.EXPERIENCE_BOTTLE) {
             event.setCancelled(true);
             return;
         }
@@ -111,6 +119,13 @@ public class BottleThrowHandler {
         if (useEvent.isCancelled()) {
             event.setCancelled(true);
             diagnosticsService.debug("Throw cancelled by an external plugin: " + player.getName());
+            return;
+        }
+
+        // Safe-режим: бутылка используется в момент броска, ванильный снаряд
+        // не создаётся — вместо него летит наш, уже помеченный использованным
+        if (config.isSafeMode()) {
+            useOnThrow(event, player, item);
         }
 
     }
@@ -124,15 +139,85 @@ public class BottleThrowHandler {
 
         ThrownExpBottle projectile = event.getEntity();
 
-        // Обычная ванильная бутылка: награду не трогаем
-        if (!tagService.isBottle(projectile.getItem())) {
-            return;
-        }
-
         Object shooter = projectile.getShooter();
         Player player = shooter instanceof Player owner ? owner : null;
 
-        event.setExperience(handleBreak(projectile.getItem(), projectile.getLocation(), player));
+        event.setExperience(breakExperience(projectile.getItem(), projectile.getLocation(),
+                player, event.getExperience()));
+
+    }
+
+    /**
+     * Награда при поломке снаряда.
+     *
+     * <p>Использованный снаряд safe-режима не даёт ничего: награда уже ушла
+     * метнувшему в момент броска. Ванильная бутылка и любой чужой предмет
+     * сохраняют свою собственную награду — мы её не трогаем.</p>
+     *
+     * @param item              предмет снаряда
+     * @param location          точка удара
+     * @param thrower           бросивший игрок или {@code null}
+     * @param vanillaExperience текущая награда события (ванильная)
+     * @return опыт, который нужно оставить в событии
+     */
+    public int breakExperience(@Nullable ItemStack item, @Nullable Location location,
+                               @Nullable Player thrower, int vanillaExperience) {
+
+        if (tagService.isSpent(item)) {
+            return 0;
+        }
+
+        if (!tagService.isBottle(item)) {
+            return vanillaExperience;
+        }
+
+        return handleBreak(item, location, thrower);
+
+    }
+
+    /**
+     * Safe-режим: бутылка используется прямо в клике.
+     *
+     * <p>Ванильный снаряд гасится и не создаётся вовсе: один предмет уходит
+     * из руки, уровни сразу начисляются ближайшему игроку в радиусе подбора —
+     * то есть метнувшему, он всегда стоит в точке клика. Орбов не бывает
+     * структурно: ядру просто нечего разбивать и награждать повторно.</p>
+     *
+     * @param event  событие взаимодействия (гасится)
+     * @param player метнувший игрок
+     * @param item   бутылка в руке
+     */
+    private void useOnThrow(@NotNull PlayerInteractEvent event, @NotNull Player player, @NotNull ItemStack item) {
+
+        event.setCancelled(true);
+
+        consumeOne(player);
+
+        // Снаряда в safe-режиме нет вовсе: награда начислена здесь, и ядру
+        // нечего разбивать позже — повторное начисление исключено структурно
+        handleBreak(item, player.getLocation(), player);
+        soundService.play(player, config.getBreakSound());
+
+        diagnosticsService.debug("Safe mode: a bottle was used on throw by " + player.getName());
+
+    }
+
+    /**
+     * Убирает одну бутылку из основной руки.
+     *
+     * @param player метнувший игрок
+     */
+    private void consumeOne(@NotNull Player player) {
+
+        ItemStack held = player.getInventory().getItemInMainHand();
+
+        if (held.getAmount() <= 1) {
+            player.getInventory().setItemInMainHand(new ItemStack(Material.AIR));
+            return;
+        }
+
+        held.setAmount(held.getAmount() - 1);
+        player.getInventory().setItemInMainHand(held);
 
     }
 
@@ -153,6 +238,12 @@ public class BottleThrowHandler {
 
         BottleData data = tagService.read(item);
 
+        // Чужой предмет: ванильная бутылка и любой предмет без нашей метки
+        // не дают награды и не попадают в счётчик
+        if (!data.bottle()) {
+            return 0;
+        }
+
         if (data.forged()) {
 
             notify(thrower, MessageKey.BOTTLE_FORGED,
@@ -167,10 +258,6 @@ public class BottleThrowHandler {
                     "A damaged bottle broke without a reward", thrower, data);
             return 0;
 
-        }
-
-        if (!config.isReleaseOnBreak()) {
-            return 0;
         }
 
         Player receiver = nearestPlayer(location, config.getPickupRadius());

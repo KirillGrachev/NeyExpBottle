@@ -1,5 +1,6 @@
 package eu.neydev.expbottle.util;
 
+import eu.neydev.expbottle.service.SkullTextureService;
 import org.bukkit.Material;
 import org.bukkit.enchantments.Enchantment;
 import org.bukkit.inventory.meta.SkullMeta;
@@ -12,7 +13,6 @@ import org.jetbrains.annotations.Nullable;
 import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.logging.Logger;
 
 /**
  * Сборщик {@link ItemStack} с защитой от {@code null}-меты.
@@ -31,8 +31,8 @@ public class ItemBuilder {
     private static final String GLINT_OVERRIDE_METHOD = "setEnchantmentGlintOverride";
     private static final String[] GLOW_ENCHANTMENTS = {"UNBREAKING", "DURABILITY"};
 
-    private final ItemStack item;
-    private final @Nullable ItemMeta meta;
+    private ItemStack item;
+    private @Nullable ItemMeta meta;
 
     public ItemBuilder(@NotNull Material material) {
         this(material, 1);
@@ -56,11 +56,14 @@ public class ItemBuilder {
 
     public @NotNull ItemBuilder setLore(@Nullable List<String> lore) {
 
+        // Недостижимо в тестах: MockBukkit даёт мету каждому материалу,
+        // ветка — страховка от ядер, отдающих null-мету
         if (meta == null) {
             return this;
         }
 
         // null трактуем как «лора нет»: некоторые меты не принимают null
+
         meta.setLore(lore == null ? List.of() : new ArrayList<>(lore));
         return this;
 
@@ -103,20 +106,40 @@ public class ItemBuilder {
     /**
      * Владелец или текстура головы. Работает только для предметов-голов.
      *
-     * @param owner   ник владельца или {@code null}
-     * @param texture base64-текстура, ссылка или {@code null}
-     * @param logger  логгер для предупреждений
+     * <p>На части ядер текстура ставится только через пересборку предмета,
+     * поэтому сборщик подменяет и предмет, и его мету на возвращённые.</p>
+     *
+     * @param skulls сервис текстур голов (состояние подбора способа живёт в нём)
+     * @param owner  ник владельца или {@code null}
+     * @param texture base64-текстура, ссылка, хеш или {@code null}
      * @return этот же объект
      */
-    public @NotNull ItemBuilder setSkull(@Nullable String owner, @Nullable String texture,
-                                         @NotNull Logger logger) {
+    public @NotNull ItemBuilder setSkull(@NotNull SkullTextureService skulls, @Nullable String owner,
+                                         @Nullable String texture) {
 
-        if (meta instanceof SkullMeta skullMeta) {
-            SkullUtil.apply(skullMeta, owner, texture, logger);
+        if (!(meta instanceof SkullMeta skullMeta)) {
+            return this;
+        }
+
+        ItemStack applied = skulls.apply(item, skullMeta, owner, texture);
+
+        if (applied != item) {
+
+            item = applied;
+            meta = item.getItemMeta();
+
         }
 
         return this;
 
+    }
+
+    /**
+     * Возвращает предмет, который держит сборщик: на части ядер голову
+     * удаётся собрать только заменой предмета.
+     */
+    public @NotNull ItemStack getItem() {
+        return item;
     }
 
     /**
@@ -214,14 +237,41 @@ public class ItemBuilder {
      */
     private boolean applyGlintOverride() {
 
+        // На API 1.16.5 метода ещё нет: ветка успеха недостижима в тестах,
+        // но обязательна на ядрах 1.20.5+
+        Method method = findMetaMethod(GLINT_OVERRIDE_METHOD);
+
+        if (method == null) {
+            return false;
+        }
+
         try {
 
-            Method method = ItemMeta.class.getMethod(GLINT_OVERRIDE_METHOD, Boolean.class);
             method.invoke(meta, Boolean.TRUE);
             return true;
 
         } catch (Throwable ignored) {
             return false;
+        }
+
+    }
+
+    /**
+     * Ищет метод меты, которого нет в compile-time API.
+     *
+     * <p>Имя приходит параметром, потому что литерал в {@code getMethod}
+     * непосредственно у {@link ItemMeta} IDE считает ошибкой: метод добавлен
+     * ядрами позже той версии API, против которой собран jar.</p>
+     *
+     * @param name имя метода меты
+     * @return метод или {@code null}, если ядро его не содержит
+     */
+    private static @Nullable Method findMetaMethod(@NotNull String name) {
+
+        try {
+            return ItemMeta.class.getMethod(name, Boolean.class);
+        } catch (NoSuchMethodException ignored) {
+            return null;
         }
 
     }

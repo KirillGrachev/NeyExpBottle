@@ -1,9 +1,15 @@
 package eu.neydev.expbottle.config;
 
 import eu.neydev.expbottle.config.type.FillMode;
+import eu.neydev.expbottle.config.section.AmountSection;
+import eu.neydev.expbottle.config.section.BottleSection;
+import eu.neydev.expbottle.config.section.ExchangeSection;
+import eu.neydev.expbottle.config.section.MenuSection;
+import eu.neydev.expbottle.config.section.PermissionsSection;
 import eu.neydev.expbottle.config.type.MessageKey;
 import eu.neydev.expbottle.gui.MenuLayout;
 import eu.neydev.expbottle.gui.item.MenuItem;
+import eu.neydev.expbottle.gui.item.MenuItemParser;
 import eu.neydev.expbottle.gui.item.MenuItemType;
 import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.configuration.file.YamlConfiguration;
@@ -32,7 +38,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  *
  * <p>Тест рефлективно собирает все константы {@code PATH_*} из {@link ConfigManager}
  * и проверяет, что каждый путь существует в {@code config.yml}. Меню по умолчанию
- * прогоняется через боевой код разбора ({@link MenuItem#from}), поэтому опечатка
+ * прогоняется через боевой код разбора ({@link MenuItemParser#parse}), поэтому опечатка
  * в разметке видна ещё до запуска сервера.</p>
  */
 class ConfigContractTest {
@@ -45,8 +51,26 @@ class ConfigContractTest {
 
     private static YamlConfiguration load(File file) {
 
-        assertTrue(file.exists(), "Файл не найден: " + file.getAbsolutePath());
+        assertTrue(file.exists(), "File not found: " + file.getAbsolutePath());
         return YamlConfiguration.loadConfiguration(file);
+
+    }
+
+    /**
+     * Пути конфигурации живут рядом со своими секциями: собираем константы
+     * всех ридеров и проверяем каждый путь по живому config.yml.
+     */
+    private static List<String> configPaths() throws IllegalAccessException {
+
+        List<String> paths = new ArrayList<>();
+
+        for (Class<?> type : List.of(ConfigManager.class, MenuSection.class, PermissionsSection.class,
+                BottleSection.class, ExchangeSection.class, AmountSection.class)) {
+            paths.addAll(pathConstants(type));
+        }
+
+        assertTrue(paths.size() >= 30, "config readers expose suspiciously few paths: " + paths.size());
+        return paths;
 
     }
 
@@ -63,32 +87,31 @@ class ConfigContractTest {
             }
 
             assertTrue(Modifier.isStatic(modifiers) && Modifier.isFinal(modifiers),
-                    field.getName() + " должна быть static final");
+                    field.getName() + " must be static final");
 
             field.setAccessible(true);
             paths.add((String) field.get(null));
 
         }
 
-        assertTrue(paths.size() >= 5, "В " + type.getSimpleName() + " подозрительно мало путей");
         return paths;
 
     }
 
     @Test
-    @DisplayName("Все пути config.yml существуют")
+    @DisplayName("All config.yml paths exist")
     void allConfigPathsExist() throws IllegalAccessException {
 
         YamlConfiguration config = load(CONFIG_FILE);
 
-        for (String path : pathConstants(ConfigManager.class)) {
-            assertTrue(config.isSet(path), "В config.yml нет пути: " + path);
+        for (String path : configPaths()) {
+            assertTrue(config.isSet(path), "config.yml has no path: " + path);
         }
 
     }
 
     @Test
-    @DisplayName("Каждому ключу сообщения соответствует секция в config.yml")
+    @DisplayName("Every message key has a section in config.yml")
     void allMessageKeysExist() {
 
         YamlConfiguration config = load(CONFIG_FILE);
@@ -97,51 +120,51 @@ class ConfigContractTest {
 
             String path = key.getPath();
 
-            assertTrue(config.isSet(path + ".enabled"), "Нет " + path + ".enabled");
-            assertTrue(config.isList(path + ".text"), "Нет списка " + path + ".text");
+            assertTrue(config.isSet(path + ".enabled"), "Missing " + path + ".enabled");
+            assertTrue(config.isList(path + ".text"), "Missing list " + path + ".text");
 
         }
 
     }
 
     @Test
-    @DisplayName("Меню по умолчанию разбирается боевым кодом")
+    @DisplayName("The default menu is parsed by the production code")
     void defaultMenuParses() {
 
         YamlConfiguration yaml = load(MENU_FILE);
 
         ConfigurationSection menu = yaml.getConfigurationSection("menu");
-        assertNotNull(menu, "В menus/exchange.yml нет секции menu");
+        assertNotNull(menu, "menus/exchange.yml has no menu section");
 
         int size = menu.getInt("size", 54);
-        assertTrue(size >= 9 && size <= 54 && size % 9 == 0, "Некорректный размер меню: " + size);
+        assertTrue(size >= 9 && size <= 54 && size % 9 == 0, "Invalid menu size: " + size);
 
         ConfigurationSection items = yaml.getConfigurationSection("items");
-        assertNotNull(items, "В menus/exchange.yml нет секции items");
+        assertNotNull(items, "menus/exchange.yml has no items section");
 
         List<MenuItem> parsed = new ArrayList<>();
 
         for (String key : items.getKeys(false)) {
 
             ConfigurationSection entry = items.getConfigurationSection(key);
-            assertNotNull(entry, "items." + key + " не является секцией");
+            assertNotNull(entry, "items." + key + " is not a section");
 
-            parsed.add(MenuItem.from(key, entry, LOGGER, size));
+            parsed.add(MenuItemParser.parse(key, entry, LOGGER, size));
 
         }
 
-        assertFalse(parsed.isEmpty(), "Меню не содержит предметов");
+        assertFalse(parsed.isEmpty(), "The menu holds no items");
 
         long tiers = parsed.stream().filter(item -> item.getType() == MenuItemType.TIER).count();
-        assertEquals(5, tiers, "Ожидалось пять кнопок обмена");
+        assertEquals(5, tiers, "Five exchange buttons were expected");
 
         long closes = parsed.stream().filter(item -> item.getType() == MenuItemType.CLOSE).count();
-        assertEquals(1, closes, "Должна быть одна кнопка закрытия");
+        assertEquals(1, closes, "There must be exactly one close button");
 
         for (MenuItem item : parsed) {
 
             if (item.getType() == MenuItemType.TIER) {
-                assertTrue(item.getLevels() > 0, item.getId() + ": levels должен быть больше нуля");
+                assertTrue(item.getLevels() > 0, item.getId() + ": levels must be greater than zero");
             }
 
         }
@@ -150,15 +173,15 @@ class ConfigContractTest {
         MenuLayout layout = MenuLayout.of(parsed);
 
         for (int slot : layout.itemsBySlot().keySet()) {
-            assertTrue(slot >= 0 && slot < size, "Слот " + slot + " вне диапазона меню");
+            assertTrue(slot >= 0 && slot < size, "Slot " + slot + " is out of the menu range");
         }
 
-        assertNotNull(layout.getItem(21), "В слоте 21 ожидается кнопка обмена");
+        assertNotNull(layout.getItem(21), "Slot 21 must hold the exchange button");
 
     }
 
     @Test
-    @DisplayName("Внутри одного приоритета слоты не пересекаются")
+    @DisplayName("Slots do not overlap within one priority")
     void slotsDoNotConflictWithinSamePriority() {
 
         List<MenuItem> parsed = parseDefaultMenu();
@@ -177,8 +200,8 @@ class ConfigContractTest {
             Set<Integer> used = usedByPriority.computeIfAbsent(item.getPriority(), key -> new HashSet<>());
 
             for (int slot : item.getSlots()) {
-                assertTrue(used.add(slot), "В приоритете " + item.getPriority()
-                        + " слот " + slot + " занят дважды (предмет " + item.getId() + ")");
+                assertTrue(used.add(slot), "In priority " + item.getPriority()
+                        + " slot " + slot + " is used twice (item " + item.getId() + ")");
             }
 
         }
@@ -186,14 +209,14 @@ class ConfigContractTest {
     }
 
     @Test
-    @DisplayName("Более высокий приоритет перекрывает низкий")
+    @DisplayName("A higher priority overrides a lower one")
     void higherPriorityWinsSlot() {
 
         MenuLayout layout = MenuLayout.of(parseDefaultMenu());
 
         MenuItem info = layout.getItem(4);
-        assertNotNull(info, "В слоте 4 ничего нет");
-        assertEquals("info", info.getId(), "Рамку должен перекрывать предмет с большим приоритетом");
+        assertNotNull(info, "Slot 4 holds nothing");
+        assertEquals("info", info.getId(), "The border must be overridden by the higher priority item");
 
     }
 
@@ -203,16 +226,16 @@ class ConfigContractTest {
 
         int size = yaml.getInt("menu.size", 54);
         ConfigurationSection items = yaml.getConfigurationSection("items");
-        assertNotNull(items, "В menus/exchange.yml нет секции items");
+        assertNotNull(items, "menus/exchange.yml has no items section");
 
         List<MenuItem> parsed = new ArrayList<>();
 
         for (String key : items.getKeys(false)) {
 
             ConfigurationSection entry = items.getConfigurationSection(key);
-            assertNotNull(entry, "items." + key + " не является секцией");
+            assertNotNull(entry, "items." + key + " is not a section");
 
-            parsed.add(MenuItem.from(key, entry, LOGGER, size));
+            parsed.add(MenuItemParser.parse(key, entry, LOGGER, size));
 
         }
 
@@ -222,20 +245,20 @@ class ConfigContractTest {
     }
 
     @Test
-    @DisplayName("plugin.yml содержит обязательные поля")
+    @DisplayName("plugin.yml contains the required fields")
     void pluginDescriptorIsValid() {
 
         YamlConfiguration descriptor = load(PLUGIN_FILE);
 
         assertEquals("NeyExpBottle", descriptor.getString("name"));
         assertEquals("eu.neydev.expbottle.NeyExpBottle", descriptor.getString("main"));
-        assertTrue(descriptor.isSet("api-version"), "Не указана api-version");
-        assertTrue(descriptor.isSet("commands.exp"), "Не объявлена команда /exp");
-        assertTrue(descriptor.isSet("commands.neyexpbottle"), "Не объявлена команда /neyexpbottle");
+        assertTrue(descriptor.isSet("api-version"), "api-version is missing");
+        assertTrue(descriptor.isSet("commands.exp"), "The /exp command is not declared");
+        assertTrue(descriptor.isSet("commands.neyexpbottle"), "The /neyexpbottle command is not declared");
 
         for (String permission : List.of("expbottle.use", "expbottle.exchange",
                 "expbottle.admin", "expbottle.bypass.cooldown")) {
-            assertTrue(descriptor.isSet("permissions." + permission), "Нет права " + permission);
+            assertTrue(descriptor.isSet("permissions." + permission), "Missing permission " + permission);
         }
 
     }

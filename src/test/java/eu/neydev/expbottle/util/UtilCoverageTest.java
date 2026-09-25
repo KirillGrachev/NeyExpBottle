@@ -43,19 +43,19 @@ class UtilCoverageTest {
     }
 
     @Test
-    @DisplayName("ValueResolver: материал, перечисления, границы и пустые значения")
+    @DisplayName("ValueResolver: material, enums, bounds and empty values")
     void valueResolverBranches() {
 
         assertEquals(Material.STONE, ValueResolver.material(null, Material.STONE, LOGGER));
         assertEquals(Material.STONE, ValueResolver.material("  ", Material.STONE, LOGGER));
-        assertEquals(Material.STONE, ValueResolver.material("ТАКОГО_НЕТ", Material.STONE, LOGGER));
+        assertEquals(Material.STONE, ValueResolver.material("NO_SUCH", Material.STONE, LOGGER));
         assertEquals(Material.PAPER, ValueResolver.material("paper", Material.STONE, LOGGER));
 
         assertEquals(MenuItemTypeProbe.TIER, ValueResolver.enumValue("tier", MenuItemTypeProbe.class,
                 MenuItemTypeProbe.DECORATION, LOGGER));
         assertEquals(MenuItemTypeProbe.DECORATION, ValueResolver.enumValue(null, MenuItemTypeProbe.class,
                 MenuItemTypeProbe.DECORATION, LOGGER));
-        assertEquals(MenuItemTypeProbe.DECORATION, ValueResolver.enumValue("битое", MenuItemTypeProbe.class,
+        assertEquals(MenuItemTypeProbe.DECORATION, ValueResolver.enumValue("broken", MenuItemTypeProbe.class,
                 MenuItemTypeProbe.DECORATION, LOGGER));
 
         assertEquals(5, ValueResolver.clamp(5, 1, 10));
@@ -80,7 +80,7 @@ class UtilCoverageTest {
     }
 
     @Test
-    @DisplayName("SignatureUtil: ключ создаётся, читается и переживает перезапись")
+    @DisplayName("SignatureUtil: the key is created, read and survives a rewrite")
     void signatureUtilLifecycle() throws Exception {
 
         File folder = Files.createTempDirectory("neb-secret").toFile();
@@ -89,7 +89,7 @@ class UtilCoverageTest {
         byte[] second = SignatureUtil.loadOrCreateSecret(folder, LOGGER);
 
         assertEquals(first.length, second.length);
-        assertTrue(java.util.Arrays.equals(first, second), "Ключ должен читаться тем же");
+        assertTrue(java.util.Arrays.equals(first, second), "The key must read back the same");
 
         String signature = SignatureUtil.sign(first, 10);
         assertFalse(signature.isEmpty());
@@ -103,33 +103,33 @@ class UtilCoverageTest {
     }
 
     @Test
-    @DisplayName("SignatureUtil: битый файл ключа не роняет загрузку")
+    @DisplayName("SignatureUtil: a broken key file does not break the load")
     void signatureUtilBrokenFile() throws Exception {
 
         File folder = Files.createTempDirectory("neb-secret-bad").toFile();
         Files.writeString(new File(folder, "secret.key").toPath(), "");
 
         byte[] secret = SignatureUtil.loadOrCreateSecret(folder, LOGGER);
-        assertEquals(0, secret.length, "Пустой файл читается как пустой ключ");
+        assertEquals(0, secret.length, "An empty file reads as an empty key");
 
     }
 
     @Test
-    @DisplayName("SoundUtil: известные и неизвестные звуки кешируются")
+    @DisplayName("SoundUtil: known and unknown sounds are cached")
     void soundUtilBranches() {
 
         assertNull(SoundUtil.resolveKey(null));
         assertNull(SoundUtil.resolveKey("  "));
         assertNotNull(SoundUtil.resolveKey("ENTITY_EXPERIENCE_ORB_PICKUP"));
-        assertNull(SoundUtil.resolveKey("ТАКОГО_ЗВУКА_НЕТ"));
+        assertNull(SoundUtil.resolveKey("NO_SUCH_SOUND"));
 
         assertTrue(SoundUtil.isKnown("ENTITY_EXPERIENCE_ORB_PICKUP"));
-        assertFalse(SoundUtil.isKnown("ТАКОГО_ЗВУКА_НЕТ"));
+        assertFalse(SoundUtil.isKnown("NO_SUCH_SOUND"));
 
     }
 
     @Test
-    @DisplayName("EnchantmentUtil: алиасы старых имён и битые имена")
+    @DisplayName("EnchantmentUtil: aliases of the old names and broken names")
     void enchantmentUtilBranches() {
 
         assertNull(EnchantmentUtil.resolve(null));
@@ -139,7 +139,7 @@ class UtilCoverageTest {
     }
 
     @Test
-    @DisplayName("ServerVersion: сравнение версий и значения по умолчанию")
+    @DisplayName("ServerVersion: version comparison and defaults")
     void serverVersionBranches() {
 
         ServerVersion.setForTests(1, 20);
@@ -159,17 +159,17 @@ class UtilCoverageTest {
     }
 
     @Test
-    @DisplayName("HexColorUtil на ядре без HEX подставляет ближайший legacy-цвет")
+    @DisplayName("HexColorUtil picks the nearest legacy color on a core without HEX")
     void hexColorLegacyFallback() {
 
         ServerVersion.setForTests(1, 15);
 
-        String colored = HexColorUtil.color("#FF0000красный");
+        String colored = HexColorUtil.color("#FF0000red");
         // #FF0000 ближе всего к legacy 0xAA0000 (код 4), а не к 0xFF5555 (код c)
-        assertEquals("§4красный", colored);
+        assertEquals("§4red", colored);
 
         String gradient = HexColorUtil.color("<gradient:#FF0000:#FF0000>ab</gradient>");
-        assertTrue(gradient.contains("§4"), "Градиент на старом ядре даёт legacy-цвета");
+        assertTrue(gradient.contains("§4"), "The gradient falls back to legacy colors on an old core");
 
         ServerVersion.setForTests(1, 16);
         assertTrue(HexColorUtil.color("#FF0000x").startsWith("§x"));
@@ -177,17 +177,17 @@ class UtilCoverageTest {
     }
 
     @Test
-    @DisplayName("Placeholders: подстановка, слияние и пустые наборы")
+    @DisplayName("Placeholders: substitution, merge and empty sets")
     void placeholdersBranches() {
 
         Placeholders placeholders = Placeholders.create()
                 .set("a", 1)
                 .set("b", null);
 
-        assertEquals("1", placeholders.apply("{a}{b}"), "null-значение становится пустой строкой");
+        assertEquals("1", placeholders.apply("{a}{b}"), "a null value becomes an empty string");
         assertEquals("", placeholders.apply((String) null));
         assertEquals("", placeholders.apply(""));
-        assertEquals("без плейсхолдеров", placeholders.apply("без плейсхолдеров"));
+        assertEquals("without placeholders", placeholders.apply("without placeholders"));
         assertEquals(List.of("1", ""), placeholders.apply(List.of("{a}", "{b}")));
         assertTrue(placeholders.apply((List<String>) null).isEmpty());
 
@@ -199,14 +199,14 @@ class UtilCoverageTest {
     }
 
     @Test
-    @DisplayName("ItemBuilder: нулевая мета, лор, флаги, блеск и количество")
+    @DisplayName("ItemBuilder: null meta, lore, flags, glint and amount")
     void itemBuilderBranches() {
 
         ItemStack item = new ItemBuilder(Material.PAPER, 0)
                 .setName(null)
                 .setLore(null)
                 .addLore(null)
-                .addLore("строка")
+                .addLore("line")
                 .addItemFlags()
                 .addItemFlags(ItemFlag.HIDE_ATTRIBUTES)
                 .setGlow(false)
@@ -221,21 +221,21 @@ class UtilCoverageTest {
         assertEquals(7, item.getItemMeta().getCustomModelData());
 
         ItemStack air = new ItemBuilder(Material.AIR)
-                .setName("имя")
-                .setLore(List.of("лор"))
-                .addLore("ещё")
+                .setName("name")
+                .setLore(List.of("lore"))
+                .addLore("more")
                 .setGlow(true)
                 .setUnbreakable(true)
                 .setCustomModelData(1)
                 .build();
 
-        assertNotNull(air, "Предмет без меты собирается без падений");
+        assertNotNull(air, "An item without meta builds without crashes");
 
         ItemStack glowing = new ItemBuilder(Material.PAPER)
                 .setGlow(true)
                 .build();
 
-        assertNotNull(glowing.getItemMeta(), "Блеск применяется к предмету с метой");
+        assertNotNull(glowing.getItemMeta(), "The glint applies to an item with meta");
 
     }
 }

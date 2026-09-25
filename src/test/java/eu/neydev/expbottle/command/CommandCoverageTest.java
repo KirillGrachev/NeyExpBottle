@@ -83,7 +83,7 @@ class CommandCoverageTest {
     }
 
     @Test
-    @DisplayName("/exp: консоль, отказ по праву, все формы открытия")
+    @DisplayName("/exp: console, permission denial, all open forms")
     void expCommandBranches() {
 
         Bukkit.dispatchCommand(Bukkit.getConsoleSender(), "exp");
@@ -110,7 +110,7 @@ class CommandCoverageTest {
     }
 
     @Test
-    @DisplayName("/exp exchange: успех, битый аргумент и выход за предел")
+    @DisplayName("/exp exchange: success, a broken argument and going over the cap")
     void expExchangeBranches() {
 
         PlayerMock player = granted("Ney");
@@ -120,7 +120,7 @@ class CommandCoverageTest {
         player.performCommand("exp exchange 5");
         assertEquals(15, player.getLevel());
 
-        player.performCommand("exp exchange не_число");
+        player.performCommand("exp exchange not_a_number");
         assertTrue(drain(player).contains("tier"));
 
         player.performCommand("exp exchange 999999");
@@ -129,7 +129,26 @@ class CommandCoverageTest {
     }
 
     @Test
-    @DisplayName("/exp tab-complete подсказывает подкоманды, меню и id кнопок")
+    @DisplayName("/exp exchange with an amount and with all")
+    void expExchangeWithAmount() {
+
+        PlayerMock player = granted("Ney");
+        player.setLevel(40);
+        player.getInventory().addItem(new ItemStack(Material.GLASS_BOTTLE, 5));
+
+        player.performCommand("exp exchange 5 3");
+        assertEquals(25, player.getLevel(), "Three bottles of 5 levels");
+
+        player.performCommand("exp exchange 5 all");
+        assertEquals(15, player.getLevel(), "all stopped at the two empty bottles left");
+
+        player.performCommand("exp exchange 5 0");
+        assertTrue(drain(player).contains("invalid") || drain(player).contains("value"));
+
+    }
+
+    @Test
+    @DisplayName("/exp tab-complete suggests subcommands, menus and button ids")
     void expTabComplete() {
 
         ExpCommand command = new ExpCommand(plugin);
@@ -145,7 +164,7 @@ class CommandCoverageTest {
         List<String> first = command.onTabComplete(player, stub, "exp", new String[]{""});
         assertTrue(first.contains("exchange"));
         assertTrue(first.contains("open"));
-        assertTrue(first.contains("exchange-menu".replace("-menu", "")), "Меню exchange в подсказках");
+        assertTrue(first.contains("exchange-menu".replace("-menu", "")), "The exchange menu is in the suggestions");
 
         List<String> second = command.onTabComplete(player, stub, "exp", new String[]{"exchange", ""});
         assertTrue(second.contains("tier_5"));
@@ -162,7 +181,7 @@ class CommandCoverageTest {
     }
 
     @Test
-    @DisplayName("/neyexpbottle: справка, перезагрузка, выдача, инфо и меню")
+    @DisplayName("/neyexpbottle: help, reload, give, info and menu")
     void adminCommandBranches() {
 
         PlayerMock admin = granted("Admin");
@@ -182,14 +201,14 @@ class CommandCoverageTest {
         admin.performCommand("neyexpbottle give NoSuchPlayer tier_5");
         assertTrue(drain(admin).contains("not online"));
 
-        admin.performCommand("neyexpbottle give Admin не_кнопка");
+        admin.performCommand("neyexpbottle give Admin not_a_button");
         assertTrue(drain(admin).contains("tier") || drain(admin).contains("exist"));
 
         admin.performCommand("neyexpbottle give Admin 5 99");
         assertTrue(drain(admin).contains("invalid") || drain(admin).contains("value"));
 
         admin.performCommand("neyexpbottle give Admin tier_5 2");
-        assertEquals(2, countBottles(admin), "Выдано две бутылки");
+        assertEquals(2, countBottles(admin), "Two bottles were given");
 
         admin.performCommand("neyexpbottle info");
         assertTrue(drain(admin).contains("diagnostics"));
@@ -207,15 +226,15 @@ class CommandCoverageTest {
         assertTrue(drain(admin).contains("not online"));
 
         admin.performCommand("neyexpbottle menu exchange Admin");
-        assertNotNull(findMenu(admin), "Меню открыто админ-командой");
+        assertNotNull(findMenu(admin), "The menu was opened by the admin command");
 
-        admin.performCommand("neyexpbottle чего_то_неизвестное");
-        assertTrue(drain(admin).contains("commands"), "Неизвестная подкоманда показывает справку");
+        admin.performCommand("neyexpbottle something_unknown");
+        assertTrue(drain(admin).contains("commands"), "An unknown subcommand shows the help");
 
     }
 
     @Test
-    @DisplayName("/neyexpbottle без прав отказывает во всём")
+    @DisplayName("/neyexpbottle without permissions denies everything")
     void adminCommandWithoutPermission() {
 
         PlayerMock guest = server.addPlayer("Guest");
@@ -227,13 +246,13 @@ class CommandCoverageTest {
         guest.performCommand("neyexpbottle menu exchange");
 
         String messages = drain(guest);
-        assertFalse(messages.contains("reloaded"), "Перезагрузка без права невозможна");
+        assertFalse(messages.contains("reloaded"), "A reload without the permission is impossible");
         assertTrue(messages.contains("permission"));
 
     }
 
     @Test
-    @DisplayName("/neyexpbottle tab-complete по всем веткам")
+    @DisplayName("/neyexpbottle tab-complete across all branches")
     void adminTabComplete() {
 
         AdminCommand command = new AdminCommand(plugin);

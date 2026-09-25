@@ -1,6 +1,5 @@
 package eu.neydev.expbottle.gui.condition;
 
-import eu.neydev.expbottle.util.Placeholders;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 

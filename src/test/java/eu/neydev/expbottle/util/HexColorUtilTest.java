@@ -18,7 +18,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 class HexColorUtilTest {
 
     @Test
-    @DisplayName("Пустые значения не ломают утилиту")
+    @DisplayName("Empty values do not break the utility")
     void handlesNullAndEmpty() {
 
         assertEquals("", HexColorUtil.color((String) null));
@@ -29,30 +29,30 @@ class HexColorUtilTest {
     }
 
     @Test
-    @DisplayName("Классические &-коды переводятся в §-коды")
+    @DisplayName("Classic & codes translate to § codes")
     void translatesLegacyCodes() {
-        assertEquals("§aЗелёный", HexColorUtil.color("&aЗелёный"));
+        assertEquals("§aGreen", HexColorUtil.color("&aGreen"));
     }
 
     @Test
-    @DisplayName("HEX раскрывается в формат §x§r§r§g§g§b§b (цифры в нижнем регистре)")
+    @DisplayName("HEX expands to the §x§r§r§g§g§b§b form (lowercase digits)")
     void expandsHex() {
-        assertEquals("§x§f§f§0§0§0§0Красный", HexColorUtil.color("#FF0000Красный"));
+        assertEquals("§x§f§f§0§0§0§0Red", HexColorUtil.color("#FF0000Red"));
     }
 
     @Test
-    @DisplayName("Форма &#RRGGBB не оставляет лишнего амперсанда")
+    @DisplayName("The &#RRGGBB form leaves no extra ampersand")
     void expandsHexWithAmpersand() {
 
-        String colored = HexColorUtil.color("&#00FF00Зелёный");
+        String colored = HexColorUtil.color("&#00FF00Green");
 
-        assertEquals("§x§0§0§f§f§0§0Зелёный", colored);
-        assertFalse(colored.contains("&&"), "Двойной амперсанд говорит о неверном разборе");
+        assertEquals("§x§0§0§f§f§0§0Green", colored);
+        assertFalse(colored.contains("&&"), "A double ampersand means the parse went wrong");
 
     }
 
     @Test
-    @DisplayName("Градиент красит каждый символ")
+    @DisplayName("The gradient colors every character")
     void appliesGradient() {
 
         String colored = HexColorUtil.color("<gradient:#FF0000:#0000FF>ab</gradient>");
@@ -62,29 +62,29 @@ class HexColorUtilTest {
     }
 
     @Test
-    @DisplayName("Одиночный символ градиента не делит на ноль")
+    @DisplayName("A single gradient character does not divide by zero")
     void gradientWithSingleCharacter() {
         assertEquals("§x§f§f§0§0§0§0a", HexColorUtil.color("<gradient:#FF0000:#0000FF>a</gradient>"));
     }
 
     @Test
-    @DisplayName("strip убирает и коды, и собственные теги")
+    @DisplayName("strip removes both codes and own tags")
     void stripsColors() {
 
-        assertEquals("Привет", HexColorUtil.strip("&aПривет"));
-        assertEquals("Привет", HexColorUtil.strip("#FF0000Привет"));
-        assertEquals("Привет", HexColorUtil.strip("<gradient:#FF0000:#0000FF>Привет</gradient>"));
+        assertEquals("Hello", HexColorUtil.strip("&aHello"));
+        assertEquals("Hello", HexColorUtil.strip("#FF0000Hello"));
+        assertEquals("Hello", HexColorUtil.strip("<gradient:#FF0000:#0000FF>Hello</gradient>"));
 
     }
 
     @Test
-    @DisplayName("Список строк красится построчно")
+    @DisplayName("A list of lines is colored line by line")
     void colorsLists() {
 
-        List<String> colored = HexColorUtil.color(List.of("&aОдин", "#FF0000Два"));
+        List<String> colored = HexColorUtil.color(List.of("&aOne", "#FF0000Two"));
 
         assertEquals(2, colored.size());
-        assertEquals("§aОдин", colored.get(0));
+        assertEquals("§aOne", colored.get(0));
         assertTrue(colored.get(1).startsWith("§x"));
 
     }

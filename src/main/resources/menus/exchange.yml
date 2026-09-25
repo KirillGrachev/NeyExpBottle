@@ -6,13 +6,21 @@
 # PLACEHOLDERS
 #   {player} {player_level} {player_exp} {player_progress} {player_levels}
 #   {levels} {exp} {required_exp} {available} {tier} {max_levels}
+#   {amount_selected} {amount_label} {all_label} {amount_hint}
+#   {amount_cycle} true/false: is the right click switch enabled in this menu;
+#   with the switch off, standalone {amount_options} and {amount_hint} lines
+#   are removed from the lore automatically
+#   on TIER buttons only: {amount_options} expands into the switcher list
+#   (settings.amount.switcher), one line per option from settings.amount.amounts
 #   plus any %placeholderapi% placeholder when PlaceholderAPI is installed
 #
 # ITEM TYPES (type)
 #   DECORATION - background, clicks are ignored
-#   INFO       - information, refreshed automatically
+#   INFO       - information, redrawn on every refresh
 #   TIER       - exchange button; without an explicit click list it runs
-#                [exchange] + [refresh]
+#                [exchange] + [refresh]; right click cycles the amount unless
+#                cycle_amount (menu) or settings.amount.cycle_on_right_click
+#                turns the switch off
 #   CLOSE      - closes the menu; without an explicit click list it runs [close]
 #   CUSTOM     - behaviour is fully defined by the click list
 #
@@ -21,7 +29,12 @@
 #   [console] command        [player] command         [chat] text
 #   [sound] NAME[:volume[:pitch]]
 #   [refresh]                [open] menu_name
-#   [exchange] levels|id     [none]
+#   [exchange] levels|id [amount|all]
+#   [back] return to the menu this one was opened from
+#   [none]
+#
+# RIGHT CLICK on a TIER button does not exchange: it switches the amount
+# on the button itself (settings.amount).
 #
 # CONDITIONS (view_requirement, click_requirement, open_requirement)
 #   The value MUST be quoted: without quotes YAML reads "{" as a flow mapping
@@ -41,21 +54,22 @@
 # OTHER ITEM FIELDS
 #   amount, name, lore, glow, custom_model_data, unbreakable,
 #   item_flags: [HIDE_ENCHANTS, HIDE_ATTRIBUTES, ...],
-#   enchantments: ["UNBREAKING:1", "LUCK:3"]  (hidden with hide_enchantments: true),
-#   skull_owner: PlayerName        (PLAYER_HEAD of a player),
-#   skull_texture: <base64|url>    (custom head texture),
+#   enchantments: ["UNBREAKING:3", "LUCK:3"], hide_enchantments: true,
+#   skull_owner: PlayerName, skull_texture: <base64|url>,
 #   priority (higher is drawn later and wins the slot),
 #   refresh (redraw on menu refresh), levels (for TIER),
-#   denial_message (message when click_requirement fails)
+#   view_requirement, click_requirement, denial_message, click
 
 menu:
 
   title: "&#8ce0ffExperience exchange"
-  size: 54
+  size: 45
 
   permission: ""            # permission to open, empty means no check
   open_requirement: ""      # condition to open
   denial_message: ""        # message on denial, empty means the default one
+  # cycle_amount: true      # RMB cycles the bottle amount on this menu;
+                            # unset means settings.amount.cycle_on_right_click
   update_interval: 20       # auto refresh in ticks, 0 disables it
 
   open_actions: []
@@ -70,7 +84,7 @@ items:
     priority: 0
     slots:
       - "0-8"
-      - "45-53"
+      - "36-44"
 
   filler:
     type: DECORATION
@@ -83,23 +97,27 @@ items:
   info:
     type: INFO
     slot: 4
-    material: EXPERIENCE_BOTTLE
+    material: PLAYER_HEAD
+    skull_texture: "ewogICJ0aW1lc3RhbXAiIDogMTc5MDE5MzczMzU1MiwKICAicHJvZmlsZUlkIiA6ICI2YWRmYWM2MjBlMDc0NTNmOWExYzM0Yjk2YmEwMzY5YiIsCiAgInByb2ZpbGVOYW1lIiA6ICJtYXR0aWpzIiwKICAic2lnbmF0dXJlUmVxdWlyZWQiIDogdHJ1ZSwKICAidGV4dHVyZXMiIDogewogICAgIlNLSU4iIDogewogICAgICAidXJsIiA6ICJodHRwOi8vdGV4dHVyZXMubWluZWNyYWZ0Lm5ldC90ZXh0dXJlLzIwZWFiYWU3NjI5NGRhYjUzNjYyN2RiMjE5N2VhNGM5MjVhYzZiZjdlYTAzZDk1ZDJmMTRlMTcyNTUxZWNiNGIiCiAgICB9CiAgfQp9"
+    priority: 1
     name: "&#FFD700Information"
     lore:
-      - "❙ &fLevel: &e{player_level}"
-      - "❙ &fExperience: &e{player_exp}"
-      - "❙ &fProgress: &e{player_progress}%"
       - ""
-      - "➤ &7Pick a bottle and click &fleft&7."
+      - " &fLevel: &e{player_level}"
+      - " &fExperience: &e{player_exp}"
+      - " &fProgress: &e{player_progress}%"
+      - ""
+      - "&7Pick a bottle and click &fleft&7."
 
   close:
     type: CLOSE
-    slot: 49
+    slot: 40
     material: BARRIER
+    priority: 1
     name: "&#FF4757Close menu"
     lore:
       - ""
-      - "➤ &fClick to close the menu"
+      - " &fClick to close the menu"
       - ""
 
   tier_1:
@@ -108,13 +126,19 @@ items:
     levels: 1
     material: EXPERIENCE_BOTTLE
     glow: true
+    priority: 1
     name: "&fExchange &e1 &flevel"
     lore:
-      - " &7▪ &fCosts: &e{levels} &flvl"
-      - " &7▪ &fThat is &e{required_exp} &fexperience"
-      - " &7▪ &fYour experience: &e{player_exp}"
       - ""
-      - " {available}"
+      - " &fCosts: &e{levels} &flvl"
+      - " &fThat is &e{required_exp} &fexperience"
+      - " &fYour experience: &e{player_exp}"
+      - ""
+      - "{available}"
+      - ""
+      - "{amount_options}"
+      - ""
+      - "{amount_hint}"
 
   tier_5:
     type: TIER
@@ -122,13 +146,19 @@ items:
     levels: 5
     material: EXPERIENCE_BOTTLE
     glow: true
+    priority: 1
     name: "&fExchange &e5 &flevels"
     lore:
-      - " &7▪ &fCosts: &e{levels} &flvl"
-      - " &7▪ &fThat is &e{required_exp} &fexperience"
-      - " &7▪ &fYour experience: &e{player_exp}"
       - ""
-      - " {available}"
+      - " &fCosts: &e{levels} &flvl"
+      - " &fThat is &e{required_exp} &fexperience"
+      - " &fYour experience: &e{player_exp}"
+      - ""
+      - "{available}"
+      - ""
+      - "{amount_options}"
+      - ""
+      - "{amount_hint}"
 
   tier_10:
     type: TIER
@@ -136,13 +166,19 @@ items:
     levels: 10
     material: EXPERIENCE_BOTTLE
     glow: true
+    priority: 1
     name: "&fExchange &e10 &flevels"
     lore:
-      - " &7▪ &fCosts: &e{levels} &flvl"
-      - " &7▪ &fThat is &e{required_exp} &fexperience"
-      - " &7▪ &fYour experience: &e{player_exp}"
       - ""
-      - " {available}"
+      - " &fCosts: &e{levels} &flvl"
+      - " &fThat is &e{required_exp} &fexperience"
+      - " &fYour experience: &e{player_exp}"
+      - ""
+      - "{available}"
+      - ""
+      - "{amount_options}"
+      - ""
+      - "{amount_hint}"
 
   tier_25:
     type: TIER
@@ -150,13 +186,19 @@ items:
     levels: 25
     material: EXPERIENCE_BOTTLE
     glow: true
+    priority: 1
     name: "&fExchange &e25 &flevels"
     lore:
-      - " &7▪ &fCosts: &e{levels} &flvl"
-      - " &7▪ &fThat is &e{required_exp} &fexperience"
-      - " &7▪ &fYour experience: &e{player_exp}"
       - ""
-      - " {available}"
+      - " &fCosts: &e{levels} &flvl"
+      - " &fThat is &e{required_exp} &fexperience"
+      - " &fYour experience: &e{player_exp}"
+      - ""
+      - "{available}"
+      - ""
+      - "{amount_options}"
+      - ""
+      - "{amount_hint}"
 
   tier_50:
     type: TIER
@@ -164,10 +206,16 @@ items:
     levels: 50
     material: EXPERIENCE_BOTTLE
     glow: true
+    priority: 1
     name: "&fExchange &e50 &flevels"
     lore:
-      - " &7▪ &fCosts: &e{levels} &flvl"
-      - " &7▪ &fThat is &e{required_exp} &fexperience"
-      - " &7▪ &fYour experience: &e{player_exp}"
       - ""
-      - " {available}"
+      - " &fCosts: &e{levels} &flvl"
+      - " &fThat is &e{required_exp} &fexperience"
+      - " &fYour experience: &e{player_exp}"
+      - ""
+      - "{available}"
+      - ""
+      - "{amount_options}"
+      - ""
+      - "{amount_hint}"
