@@ -69,9 +69,7 @@ class SkullSupportFlowTest {
 
     @AfterEach
     void tearDown() {
-
         MockBukkit.unmock();
-
     }
 
     @Test

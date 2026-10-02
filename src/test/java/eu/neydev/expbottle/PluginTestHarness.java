@@ -58,11 +58,9 @@ public abstract class PluginTestHarness {
 
     @BeforeEach
     void setUpHarness() {
-
         server = MockBukkit.mock();
         plugin = MockBukkit.load(NeyExpBottle.class);
         services = plugin.getServices();
-
     }
 
     @AfterEach
@@ -108,10 +106,8 @@ public abstract class PluginTestHarness {
      * мок-зачарования под ключами, к которым приводят алиасы конфига.
      */
     protected void registerMockEnchantments() {
-
         registerMockEnchantment("unbreaking", "UNBREAKING");
         registerMockEnchantment("luck", "LUCK");
-
     }
 
     @SuppressWarnings("deprecation")
@@ -132,10 +128,8 @@ public abstract class PluginTestHarness {
     }
 
     protected void writeMenu(String name, String yaml) throws IOException {
-
         File folder = new File(plugin.getDataFolder(), "menus");
         Files.writeString(new File(folder, name + ".yml").toPath(), yaml, StandardCharsets.UTF_8);
-
     }
 
     protected void setConfigValue(String from, String to) throws IOException {
@@ -155,10 +149,8 @@ public abstract class PluginTestHarness {
      * Правка config.yml с обязательной перезагрузкой: частый шаг тестов сервисов.
      */
     protected void setConfig(String from, String to) throws IOException {
-
         setConfigValue(from, to);
         services.reload();
-
     }
 
     protected @NotNull InventoryClickEvent click(PlayerMock player, int slot) {
@@ -171,6 +163,7 @@ public abstract class PluginTestHarness {
                 player.getOpenInventory(), InventoryType.SlotType.CONTAINER, slot,
                 type, InventoryAction.PICKUP_ALL);
         server.getPluginManager().callEvent(event);
+
         return event;
 
     }
@@ -199,6 +192,7 @@ public abstract class PluginTestHarness {
 
         PlayerInteractEvent event = new PlayerInteractEvent(player, Action.RIGHT_CLICK_AIR, item, null, BlockFace.NORTH);
         server.getPluginManager().callEvent(event);
+
         return event;
 
     }

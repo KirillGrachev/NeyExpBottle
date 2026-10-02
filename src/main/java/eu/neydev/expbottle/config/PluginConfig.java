@@ -54,9 +54,7 @@ public interface PluginConfig {
 
     boolean isOpBypassEnabled();
 
-
     boolean isSafeMode();
-
 
     double getPickupRadius();
 
@@ -75,7 +73,6 @@ public interface PluginConfig {
     boolean isCooldownEnabled();
 
     long getCooldownMillis();
-
 
     boolean isMessageEnabled(@NotNull MessageKey key);
 

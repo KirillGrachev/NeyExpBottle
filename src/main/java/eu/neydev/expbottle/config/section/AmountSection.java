@@ -31,7 +31,6 @@ public final class AmountSection {
     private static final String PATH_CYCLE_ON_RIGHT_CLICK = "settings.amount.cycle_on_right_click";
 
     public static @NotNull AmountSettings read(@NotNull FileConfiguration config, @NotNull Logger logger) {
-
         return new AmountSettings(
                 readOptions(config, logger),
                 config.getString(PATH_ALL_LABEL, "ALL"),
@@ -41,7 +40,6 @@ public final class AmountSection {
                 Sounds.read(config, PATH_CYCLE_SOUND, SoundSettings.of("UI_BUTTON_CLICK", 0.5f, 1.4f)),
                 config.getBoolean(PATH_CYCLE_ON_RIGHT_CLICK, true)
         );
-
     }
 
     /**

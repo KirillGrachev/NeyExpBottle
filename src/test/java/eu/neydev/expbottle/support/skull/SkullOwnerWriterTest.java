@@ -61,7 +61,6 @@ class SkullOwnerWriterTest {
         SkullMeta meta = newSkullMeta();
 
         SkullOwnerWriter.applyOwner(meta, "Ney");
-
         assertEquals("Ney", meta.getOwner());
 
     }
@@ -102,21 +101,15 @@ class SkullOwnerWriterTest {
     @Test
     @DisplayName("writeSkullOwner gives up on a tag without string methods")
     void writeSkullOwnerWithoutMethods() {
-
         EmptyTag tag = new EmptyTag();
-
         assertFalse(SkullOwnerWriter.writeSkullOwner(tag, EmptyTag.class, PAYLOAD, "Ney"));
-
     }
 
     @Test
     @DisplayName("writeSkullOwner gives up on a tag class without a default constructor")
     void writeSkullOwnerWithoutConstructor() {
-
         NoDefaultConstructor tag = new NoDefaultConstructor("stub");
-
         assertFalse(SkullOwnerWriter.writeSkullOwner(tag, NoDefaultConstructor.class, PAYLOAD, "Ney"));
-
     }
 
     @Test
@@ -141,21 +134,15 @@ class SkullOwnerWriterTest {
     @Test
     @DisplayName("mirrorBack swallows a mirror method that throws")
     void mirrorBackThrowing() {
-
         Object stub = new be.seeseemelk.mockbukkit.CraftItemStack.NmsStackStub();
-
         assertNull(SkullOwnerWriter.mirrorBack(ThrowingMirror.class, stub));
-
     }
 
     @Test
     @DisplayName("mirrorBack returns null when the mirror is not an item")
     void mirrorBackWrongType() {
-
         Object stub = new be.seeseemelk.mockbukkit.CraftItemStack.NmsStackStub();
-
         assertNull(SkullOwnerWriter.mirrorBack(WrongMirror.class, stub));
-
     }
 
     @SuppressWarnings("deprecation")

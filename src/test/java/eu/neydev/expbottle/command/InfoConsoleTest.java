@@ -27,18 +27,14 @@ class InfoConsoleTest {
 
     @BeforeEach
     void setUp() {
-
         server = MockBukkit.mock();
         plugin = MockBukkit.load(NeyExpBottle.class);
-
     }
 
     @AfterEach
     void tearDown() {
-
         server.getScheduler().cancelTasks(plugin);
         MockBukkit.unmock();
-
     }
 
     @Test

@@ -52,14 +52,12 @@ public class BottleThrowHandler {
     private final DiagnosticsService diagnosticsService;
 
     public BottleThrowHandler(@NotNull PluginServices services) {
-
         this.config = services.getConfigManager();
         this.tagService = services.getBottleTagService();
         this.messageService = services.getMessageService();
         this.soundService = services.getSoundService();
         this.experienceService = services.getExperienceService();
         this.diagnosticsService = services.getDiagnosticsService();
-
     }
 
     /**
@@ -94,15 +92,21 @@ public class BottleThrowHandler {
         Player player = event.getPlayer();
 
         if (data.forged()) {
+
             event.setCancelled(true);
             reject(player, data, MessageKey.BOTTLE_FORGED, "forged");
+
             return;
+
         }
 
         if (data.isBroken(config.getMaxBottleLevels())) {
+
             event.setCancelled(true);
             reject(player, data, MessageKey.BOTTLE_BROKEN, "damaged tag");
+
             return;
+
         }
 
         // Ванильный снаряд существует только у EXPERIENCE_BOTTLE: с другим
@@ -117,9 +121,12 @@ public class BottleThrowHandler {
         Bukkit.getPluginManager().callEvent(useEvent);
 
         if (useEvent.isCancelled()) {
+
             event.setCancelled(true);
             diagnosticsService.debug("Throw cancelled by an external plugin: " + player.getName());
+
             return;
+
         }
 
         // Safe-режим: бутылка используется в момент броска, ванильный снаряд
@@ -245,19 +252,15 @@ public class BottleThrowHandler {
         }
 
         if (data.forged()) {
-
             notify(thrower, MessageKey.BOTTLE_FORGED,
                     "A forged bottle broke without a reward", thrower, data);
             return 0;
-
         }
 
         if (data.isBroken(config.getMaxBottleLevels())) {
-
             notify(thrower, MessageKey.BOTTLE_BROKEN,
                     "A damaged bottle broke without a reward", thrower, data);
             return 0;
-
         }
 
         Player receiver = nearestPlayer(location, config.getPickupRadius());
@@ -269,6 +272,7 @@ public class BottleThrowHandler {
             diagnosticsService.incrementBottlesUsed();
             diagnosticsService.debug("A bottle with " + data.levels()
                     + " levels broke next to " + receiver.getName());
+
             return 0;
 
         }
@@ -324,10 +328,8 @@ public class BottleThrowHandler {
 
     private void reject(@NotNull Player player, @NotNull BottleData data,
                         @NotNull MessageKey key, @NotNull String reason) {
-
         messageService.send(player, key);
         diagnosticsService.suspicious(reason + " by " + player.getName() + ": " + data.levels() + " levels");
-
     }
 
     private boolean isThrowAction(@NotNull Action action) {

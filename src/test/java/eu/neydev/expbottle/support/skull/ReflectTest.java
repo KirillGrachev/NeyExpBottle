@@ -42,20 +42,15 @@ class ReflectTest {
     @Test
     @DisplayName("firstClass returns the first loadable name and null when none loads")
     void firstClass() {
-
         assertEquals(String.class, Reflect.firstClass("no.such.Klass", "java.lang.String"));
         assertNull(Reflect.firstClass("no.such.Klass", "no.such.Klass.too"));
-
     }
 
     @Test
     @DisplayName("resolveCraftClass finds the class in the server package")
     void resolveCraftClassFromServerPackage() {
-
         Class<?> resolved = Reflect.resolveCraftClass("CraftItemStack");
-
         assertEquals(be.seeseemelk.mockbukkit.CraftItemStack.class, resolved);
-
     }
 
     @Test
@@ -92,10 +87,8 @@ class ReflectTest {
     @Test
     @DisplayName("requireMethod finds the method or throws NoSuchMethodException")
     void requireMethod() throws NoSuchMethodException {
-
         assertNotNull(Reflect.requireMethod(String.class, "trim"));
         assertThrows(NoSuchMethodException.class, () -> Reflect.requireMethod(String.class, "nope"));
-
     }
 
     @Test

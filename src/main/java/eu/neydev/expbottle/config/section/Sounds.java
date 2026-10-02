@@ -14,13 +14,11 @@ public final class Sounds {
 
     public static @NotNull SoundSettings read(@NotNull FileConfiguration config, @NotNull String path,
                                               @NotNull SoundSettings fallback) {
-
         return new SoundSettings(
                 config.getBoolean(path + ".enabled", fallback.enabled()),
                 config.getString(path + ".name", fallback.name()),
                 (float) config.getDouble(path + ".volume", fallback.volume()),
                 (float) config.getDouble(path + ".pitch", fallback.pitch())
         );
-
     }
 }

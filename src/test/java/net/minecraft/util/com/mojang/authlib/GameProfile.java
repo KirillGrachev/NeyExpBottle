@@ -22,11 +22,9 @@ public class GameProfile {
     }
 
     public GameProfile(UUID id, String name, PropertyMap properties) {
-
         this.id = id;
         this.name = name;
         this.properties = properties;
-
     }
 
     public UUID getId() {

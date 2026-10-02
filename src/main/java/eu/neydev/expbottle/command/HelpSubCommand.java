@@ -24,11 +24,9 @@ public class HelpSubCommand extends AdminSubCommand {
 
     @Override
     public void execute(@NotNull CommandSender sender, String @NotNull [] args) {
-
         context.messages().send(sender, MessageKey.HELP, Placeholders.create()
                 .set("version", context.version())
                 .set("author", context.author())
                 .set("tiers", context.services().getBottleRegistry().size()));
-
     }
 }

@@ -55,7 +55,6 @@ public record BottleSection(@NotNull Material material, @NotNull String name, @N
     private static final String PATH_BREAK_SOUND = "settings.bottle.break_sound";
 
     public static @NotNull BottleSection read(@NotNull FileConfiguration config, @NotNull Logger logger) {
-
         return new BottleSection(
                 ValueResolver.material(config.getString(PATH_MATERIAL), DEFAULT_MATERIAL, logger),
                 config.getString(PATH_NAME, DEFAULT_NAME),
@@ -68,7 +67,6 @@ public record BottleSection(@NotNull Material material, @NotNull String name, @N
                 Math.max(0.0, config.getDouble(PATH_PICKUP_RADIUS, 4.0)),
                 Sounds.read(config, PATH_BREAK_SOUND, SoundSettings.of("ENTITY_EXPERIENCE_ORB_PICKUP", 1.0f, 1.0f))
         );
-
     }
 
     private static @NotNull List<String> readLore(@NotNull FileConfiguration config, @NotNull String path,

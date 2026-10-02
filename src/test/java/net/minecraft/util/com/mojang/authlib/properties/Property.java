@@ -57,10 +57,8 @@ public class Property {
      * Сбрасывает счётчики попыток: тест начинает перебор с известного состояния.
      */
     public static void resetStub() {
-
         TWO_ARGUMENT_ATTEMPTS.set(0);
         THREE_ARGUMENT_ATTEMPTS.set(0);
-
     }
 
     public String getName() {

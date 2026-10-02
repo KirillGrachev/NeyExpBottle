@@ -102,12 +102,10 @@ public enum ComparisonOperator {
     }
 
     private @Nullable Double asNumber(@NotNull String value) {
-
         try {
             return Double.valueOf(value.trim());
         } catch (NumberFormatException exception) {
             return null;
         }
-
     }
 }

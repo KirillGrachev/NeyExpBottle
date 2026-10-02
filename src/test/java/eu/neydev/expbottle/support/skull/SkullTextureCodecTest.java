@@ -43,57 +43,41 @@ class SkullTextureCodecTest {
     @Test
     @DisplayName("A ready JSON block starting with a brace is not rebuilt")
     void keepsRawJsonBlock() {
-
         String raw = "{\"textures\":{\"SKIN\":{\"url\":\"https://textures.minecraft.net/texture/x\"}}}";
-
         assertEquals(raw, SkullTextureCodec.toBase64Payload(raw));
-
     }
 
     @Test
     @DisplayName("A line with the textures key is returned as is even without a leading brace")
     void keepsStringContainingTexturesKey() {
-
         String raw = "prefix-\"textures\"-suffix";
-
         assertEquals(raw, SkullTextureCodec.toBase64Payload(raw));
-
     }
 
     @Test
     @DisplayName("The texture url is extracted back from the base64 block")
     void extractsSkinUrlFromPayload() {
-
         String payload = SkullTextureCodec.toBase64Payload("abc123");
-
         assertEquals("https://textures.minecraft.net/texture/abc123", SkullTextureCodec.skinUrl(payload));
-
     }
 
     @Test
     @DisplayName("The url is also extracted from a ready JSON block")
     void extractsSkinUrlFromRawJson() {
-
         String raw = "{\"textures\":{\"SKIN\":{\"url\":\"https://example.com/skin.png\"}}}";
-
         assertEquals("https://example.com/skin.png", SkullTextureCodec.skinUrl(raw));
-
     }
 
     @Test
     @DisplayName("A broken block without a url is returned as is")
     void returnsPayloadWhenUrlMissing() {
-
         assertEquals("not-a-payload", SkullTextureCodec.skinUrl("not-a-payload"));
-
     }
 
     @Test
     @DisplayName("An unclosed quote after the url does not break the extraction")
     void extractsSkinUrlWithoutClosingQuote() {
-
         assertEquals("abc", SkullTextureCodec.skinUrl("{\"url\":\"abc"));
-
     }
 
     @Test
@@ -122,6 +106,7 @@ class SkullTextureCodecTest {
                 + "    }\n"
                 + "  }\n"
                 + "}";
+
         String payload = Base64.getEncoder().encodeToString(json.getBytes(StandardCharsets.UTF_8));
 
         assertEquals(payload, SkullTextureCodec.toBase64Payload(payload),

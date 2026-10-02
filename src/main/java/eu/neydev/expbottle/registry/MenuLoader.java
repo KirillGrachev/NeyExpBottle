@@ -54,7 +54,6 @@ public class MenuLoader {
     public void load(@NotNull Map<String, MenuDefinition> menus) {
 
         menus.clear();
-
         saveDefaults();
 
         File folder = new File(plugin.getDataFolder(), MENUS_FOLDER);
@@ -111,13 +110,11 @@ public class MenuLoader {
      * Кладёт встроенное меню в папку menus/.
      */
     private void saveDefaultMenu(@NotNull String resource) {
-
         try {
             plugin.saveResource(resource, false);
         } catch (IllegalArgumentException exception) {
             logger.warning("Failed to create the default menu " + resource + ": " + exception.getMessage());
         }
-
     }
 
     /**
@@ -214,13 +211,11 @@ public class MenuLoader {
     }
 
     private @NotNull Condition readCondition(@Nullable String raw, @NotNull String context) {
-
         try {
             return Condition.parse(raw);
         } catch (IllegalArgumentException exception) {
             logger.warning(context + ": " + exception.getMessage() + " - condition ignored");
             return Condition.alwaysTrue();
         }
-
     }
 }

@@ -31,11 +31,8 @@ class PlaceholdersTest {
     @Test
     @DisplayName("A self-referencing value does not hang the substitution")
     void selfReferenceStops() {
-
         Placeholders placeholders = Placeholders.create().set("loop", "{loop}");
-
         assertEquals("{loop}", placeholders.apply("{loop}"));
-
     }
 
     @Test

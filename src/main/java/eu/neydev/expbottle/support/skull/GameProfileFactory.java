@@ -57,7 +57,6 @@ final class GameProfileFactory {
                 .newInstance(stableUuid(payload), ownerName(owner));
 
         putTextureProperty(gameProfile, payload);
-
         return gameProfile;
 
     }
@@ -163,23 +162,15 @@ final class GameProfileFactory {
             Class<?> type = types[index];
 
             if (type.isAssignableFrom(gameProfile.getClass())) {
-
                 arguments[index] = gameProfile;
                 profileUsed = true;
-
             } else if (type.getName().endsWith("CompletableFuture")) {
-
                 arguments[index] = CompletableFuture.completedFuture(gameProfile);
                 profileUsed = true;
-
             } else if (type == boolean.class) {
-
                 arguments[index] = Boolean.TRUE;
-
             } else if (type == int.class) {
-
                 arguments[index] = 0;
-
             } else {
                 return false;
             }

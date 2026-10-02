@@ -54,11 +54,8 @@ class HexColorUtilTest {
     @Test
     @DisplayName("The gradient colors every character")
     void appliesGradient() {
-
         String colored = HexColorUtil.color("<gradient:#FF0000:#0000FF>ab</gradient>");
-
         assertEquals("§x§f§f§0§0§0§0a§x§0§0§0§0§f§fb", colored);
-
     }
 
     @Test

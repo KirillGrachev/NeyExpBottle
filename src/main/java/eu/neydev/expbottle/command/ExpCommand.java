@@ -62,13 +62,11 @@ public class ExpCommand extends BaseCommand {
                     .open(player, args.length >= 2 ? args[1] : null);
 
             default -> {
-
                 if (subcommand.isEmpty()) {
                     services().getMenuService().open(player);
                 } else {
                     services().getMenuService().open(player, subcommand);
                 }
-
             }
 
         }
@@ -106,12 +104,10 @@ public class ExpCommand extends BaseCommand {
             amount = AmountSelectionService.parseAmount(args[2]);
 
             if (amount == 0) {
-
                 messages().send(player, MessageKey.INVALID_AMOUNT, Placeholders.create()
                         .set("levels", args[2])
                         .set("max_levels", ExchangeService.MAX_AMOUNT));
                 return;
-
             }
 
         }
@@ -136,22 +132,18 @@ public class ExpCommand extends BaseCommand {
             int levels = Integer.parseInt(raw.trim());
 
             if (levels < 1 || levels > maxLevels) {
-
                 messages().send(player, MessageKey.INVALID_AMOUNT, Placeholders.create()
                         .set("levels", raw)
                         .set("max_levels", maxLevels));
                 return -1;
-
             }
 
             return levels;
 
         } catch (NumberFormatException exception) {
-
             messages().send(player, MessageKey.INVALID_TIER,
                     Placeholders.create().set("tier", raw));
             return -1;
-
         }
 
     }
@@ -168,6 +160,7 @@ public class ExpCommand extends BaseCommand {
 
             List<String> suggestions = new ArrayList<>(List.of(SUB_EXCHANGE, SUB_OPEN));
             suggestions.addAll(services().getMenuService().getMenuNames());
+
             return filter(suggestions, args[0]);
 
         }

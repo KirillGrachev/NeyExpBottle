@@ -238,10 +238,8 @@ public final class MenuItemParser {
     }
 
     private static boolean isFillToken(@NotNull String token) {
-
         String normalized = token.toLowerCase(Locale.ROOT);
         return TOKEN_ALL.equals(normalized) || TOKEN_EMPTY.equals(normalized);
-
     }
 
     private static @NotNull List<ItemFlag> readItemFlags(@Nullable List<String> raw, @NotNull Logger logger) {
@@ -262,13 +260,11 @@ public final class MenuItemParser {
 
     private static @NotNull Condition readCondition(@Nullable String raw, @NotNull Logger logger,
                                                     @NotNull String context) {
-
         try {
             return Condition.parse(raw);
         } catch (IllegalArgumentException exception) {
             logger.warning(context + ": " + exception.getMessage() + " - condition ignored");
             return Condition.alwaysTrue();
         }
-
     }
 }

@@ -322,6 +322,7 @@ class CoveragePushTest {
 
         player.setLevel(8);
         menu.refresh();
+
         assertTrue(menu.getInventory().getItem(4).getItemMeta().getDisplayName().contains("8"),
                 "The dynamic item was redrawn");
 

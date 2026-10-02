@@ -32,7 +32,6 @@ public record ExchangeSection(boolean requireEmptyBottles, @NotNull Material emp
     private static final String PATH_COOLDOWN_MILLIS = "settings.exchange.cooldown.millis";
 
     public static @NotNull ExchangeSection read(@NotNull FileConfiguration config, @NotNull Logger logger) {
-
         return new ExchangeSection(
                 config.getBoolean(PATH_REQUIRE_BOTTLES, true),
                 ValueResolver.material(config.getString(PATH_BOTTLE_MATERIAL), DEFAULT_EMPTY_BOTTLE_MATERIAL, logger),
@@ -41,6 +40,5 @@ public record ExchangeSection(boolean requireEmptyBottles, @NotNull Material emp
                 config.getBoolean(PATH_COOLDOWN_ENABLED, false),
                 Math.max(0L, config.getLong(PATH_COOLDOWN_MILLIS, 500L))
         );
-
     }
 }

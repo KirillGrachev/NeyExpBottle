@@ -72,9 +72,7 @@ class SkullTextureSupportTest {
 
     @AfterEach
     void tearDown() {
-
-                MockBukkit.unmock();
-
+        MockBukkit.unmock();
     }
 
     @Test
@@ -134,7 +132,6 @@ class SkullTextureSupportTest {
         SkullMeta meta = (SkullMeta) item.getItemMeta();
 
         service.apply(item, meta, "Ney", "texture-d");
-
         assertEquals("Ney", meta.getOwner());
 
     }

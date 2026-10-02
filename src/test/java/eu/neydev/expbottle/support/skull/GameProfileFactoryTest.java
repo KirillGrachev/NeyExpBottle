@@ -47,10 +47,8 @@ class GameProfileFactoryTest {
     @Test
     @DisplayName("stableUuid is derived from the payload and stays put")
     void stableUuid() {
-
         assertEquals(GameProfileFactory.stableUuid(PAYLOAD), GameProfileFactory.stableUuid(PAYLOAD));
         assertNotEquals(GameProfileFactory.stableUuid(PAYLOAD), GameProfileFactory.stableUuid(PAYLOAD + "x"));
-
     }
 
     @Test
@@ -73,21 +71,15 @@ class GameProfileFactoryTest {
     @Test
     @DisplayName("newGameProfile uses the default owner when none is given")
     void newGameProfileDefaultOwner() throws Exception {
-
         GameProfile profile = (GameProfile) GameProfileFactory.newGameProfile(PAYLOAD, null);
-
         assertEquals(GameProfileFactory.DEFAULT_OWNER_NAME, profile.getName());
-
     }
 
     @Test
     @DisplayName("putTextureProperty rejects a profile without a property map")
     void putTexturePropertyWithoutMap() {
-
         GameProfile profile = new GameProfile(UUID.randomUUID(), "Ney", null);
-
         assertThrows(IllegalStateException.class, () -> GameProfileFactory.putTextureProperty(profile, PAYLOAD));
-
     }
 
     @Test
@@ -111,11 +103,8 @@ class GameProfileFactoryTest {
     @Test
     @DisplayName("newResolvableProfile returns null once every constructor refuses")
     void newResolvableProfileGivesUp() throws Exception {
-
         ResolvableProfile.resetStub();
-
         assertNull(GameProfileFactory.newResolvableProfile(PAYLOAD, "Ney"));
-
     }
 
     @Test
@@ -169,6 +158,7 @@ class GameProfileFactoryTest {
     private static void primePropertyStub() {
 
         Property.resetStub();
+        
         GameProfileFactory.newAuthlibProperty(PAYLOAD);
         GameProfileFactory.newAuthlibProperty(PAYLOAD);
 

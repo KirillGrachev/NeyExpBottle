@@ -145,6 +145,7 @@ public class Menu {
 
         Placeholders placeholders = placeholderService.forMenu(player, definition.name());
         placeholders.merge(context);
+
         return placeholderService.format(player, definition.title(), placeholders);
 
     }

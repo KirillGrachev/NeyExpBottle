@@ -83,6 +83,7 @@ public class ItemBuilder {
 
         lore.add(line);
         meta.setLore(lore);
+
         return this;
 
     }
@@ -267,13 +268,11 @@ public class ItemBuilder {
      * @return метод или {@code null}, если ядро его не содержит
      */
     private static @Nullable Method findMetaMethod(@NotNull String name) {
-
         try {
             return ItemMeta.class.getMethod(name, Boolean.class);
         } catch (NoSuchMethodException ignored) {
             return null;
         }
-
     }
 
     /**

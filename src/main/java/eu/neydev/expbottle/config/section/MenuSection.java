@@ -25,13 +25,11 @@ public record MenuSection(@NotNull String defaultMenu, @NotNull String available
     private static final String PATH_UNAVAILABLE_BOTTLES = "settings.menu.unavailable_bottles_text";
 
     public static @NotNull MenuSection read(@NotNull FileConfiguration config) {
-
         return new MenuSection(
                 config.getString(PATH_DEFAULT, DEFAULT_MENU),
                 config.getString(PATH_AVAILABLE, DEFAULT_AVAILABLE_TEXT),
                 config.getString(PATH_UNAVAILABLE, DEFAULT_UNAVAILABLE_TEXT),
                 config.getString(PATH_UNAVAILABLE_BOTTLES, DEFAULT_UNAVAILABLE_BOTTLES_TEXT)
         );
-
     }
 }

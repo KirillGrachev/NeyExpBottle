@@ -62,10 +62,8 @@ public class MessageService {
     }
 
     public void sendLines(@NotNull CommandSender sender, @NotNull List<String> lines) {
-
         for (String line : lines) {
             sender.sendMessage(HexColorUtil.color(line));
         }
-
     }
 }

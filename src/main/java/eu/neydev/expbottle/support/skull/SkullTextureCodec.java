@@ -92,14 +92,10 @@ public final class SkullTextureCodec {
     }
 
     private static @NotNull String decode(@NotNull String payload) {
-
         try {
-
             return new String(Base64.getDecoder().decode(payload), StandardCharsets.UTF_8);
-
         } catch (IllegalArgumentException ignored) {
             return payload;
         }
-
     }
 }

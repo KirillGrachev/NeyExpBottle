@@ -41,7 +41,6 @@ public class MenuService implements MenuNavigation {
                        @NotNull PermissionService permissionService, @NotNull PlaceholderService placeholderService,
                        @NotNull ActionExecutor actionExecutor, @NotNull DiagnosticsService diagnosticsService,
                        @NotNull MenuRenderer menuRenderer) {
-
         this.plugin = plugin;
         this.config = config;
         this.menuRegistry = menuRegistry;
@@ -51,7 +50,6 @@ public class MenuService implements MenuNavigation {
         this.actionExecutor = actionExecutor;
         this.diagnosticsService = diagnosticsService;
         this.menuRenderer = menuRenderer;
-
     }
 
     /**

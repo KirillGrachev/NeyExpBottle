@@ -50,7 +50,6 @@ final class SkullOwnerWriter {
                 Class.forName("org.bukkit.profile.PlayerProfile"));
 
         Object result = setOwnerProfile.invoke(meta, profile);
-
         return !(result instanceof Boolean value) || value;
 
     }

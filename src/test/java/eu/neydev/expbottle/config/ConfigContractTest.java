@@ -50,10 +50,8 @@ class ConfigContractTest {
     private static final File PLUGIN_FILE = new File("src/main/resources/plugin.yml");
 
     private static YamlConfiguration load(File file) {
-
         assertTrue(file.exists(), "File not found: " + file.getAbsolutePath());
         return YamlConfiguration.loadConfiguration(file);
-
     }
 
     /**
@@ -162,11 +160,9 @@ class ConfigContractTest {
         assertEquals(1, closes, "There must be exactly one close button");
 
         for (MenuItem item : parsed) {
-
             if (item.getType() == MenuItemType.TIER) {
                 assertTrue(item.getLevels() > 0, item.getId() + ": levels must be greater than zero");
             }
-
         }
 
         // Раскладка строится без исключений и держит слоты в диапазоне

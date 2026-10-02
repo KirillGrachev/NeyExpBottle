@@ -160,29 +160,21 @@ public class SkullTextureService {
     }
 
     private boolean isDead(@NotNull SkullApplyStrategy strategy) {
-
         synchronized (deadStrategies) {
             return deadStrategies.contains(strategy.id());
         }
-
     }
 
     private void markDead(@NotNull SkullApplyStrategy strategy) {
-
         synchronized (deadStrategies) {
-
             deadStrategies.add(strategy.id());
             allStrategiesDead = deadStrategies.size() >= STRATEGIES.size();
-
         }
-
     }
 
     private void rememberSuccess(@NotNull SkullApplyStrategy strategy) {
-
         applied.incrementAndGet();
         workingStrategy.set(strategy.id());
-
     }
 
     /**
@@ -210,15 +202,12 @@ public class SkullTextureService {
     }
 
     private @NotNull List<String> strategyNames() {
-
         return STRATEGIES.stream()
                 .map(SkullApplyStrategy::id)
                 .toList();
-
     }
 
     private @NotNull String describeServer() {
-
         try {
             return Bukkit.getServer().getClass().getPackage().getName() + ", " + Bukkit.getBukkitVersion();
         } catch (Throwable ignored) {
@@ -226,6 +215,5 @@ public class SkullTextureService {
             // ветка страховки на случай вызова без поднятого ядра
             return "unknown core";
         }
-
     }
 }

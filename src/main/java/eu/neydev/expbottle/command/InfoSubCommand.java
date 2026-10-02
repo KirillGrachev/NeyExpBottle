@@ -58,13 +58,11 @@ public class InfoSubCommand extends AdminSubCommand {
                 .set("tiers", context.services().getBottleRegistry().size());
 
         if (target == null) {
-
             placeholders.set("player", "—")
                     .set("player_level", "—")
                     .set("player_exp", "—")
                     .set("player_progress", "—")
                     .set("player_levels", "—");
-
         } else {
             placeholders.merge(context.services().getPlaceholderService().forPlayer(target));
         }
@@ -72,12 +70,10 @@ public class InfoSubCommand extends AdminSubCommand {
         context.messages().send(sender, MessageKey.INFO, placeholders);
 
         if (!(sender instanceof Player)) {
-
             context.services().getDiagnosticsService().info("Skull textures: method "
                     + context.services().getSkullTextureService().getWorkingStrategy()
                     + ", applied " + context.services().getSkullTextureService().getAppliedCount()
                     + ", failed " + context.services().getSkullTextureService().getFailedCount());
-
         }
 
     }

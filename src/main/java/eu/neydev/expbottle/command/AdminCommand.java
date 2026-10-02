@@ -51,6 +51,7 @@ public class AdminCommand extends BaseCommand {
 
         AdminSubCommand handler = resolve(args);
         handler.execute(sender, args);
+
         return true;
 
     }

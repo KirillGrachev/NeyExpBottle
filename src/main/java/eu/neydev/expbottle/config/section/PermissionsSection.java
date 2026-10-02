@@ -24,7 +24,6 @@ public record PermissionsSection(boolean enabled, @NotNull String use, @NotNull 
     private static final String PATH_OP_BYPASS = "settings.permissions.op_bypass";
 
     public static @NotNull PermissionsSection read(@NotNull FileConfiguration config) {
-
         return new PermissionsSection(
                 config.getBoolean(PATH_ENABLED, true),
                 config.getString(PATH_USE, "expbottle.use"),
@@ -33,6 +32,5 @@ public record PermissionsSection(boolean enabled, @NotNull String use, @NotNull 
                 config.getString(PATH_BYPASS_COOLDOWN, "expbottle.bypass.cooldown"),
                 config.getBoolean(PATH_OP_BYPASS, false)
         );
-
     }
 }

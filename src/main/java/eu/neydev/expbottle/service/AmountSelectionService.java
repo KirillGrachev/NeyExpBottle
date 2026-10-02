@@ -73,10 +73,8 @@ public class AmountSelectionService {
         List<String> amounts = options();
 
         if (!amounts.contains(token)) {
-
             diagnosticsService.debug("Amount option '" + raw + "' is not in settings.amount.amounts - ignored");
             return;
-
         }
 
         selections.put(player.getUniqueId(), parse(token));
@@ -141,10 +139,8 @@ public class AmountSelectionService {
         }
 
         try {
-
             int amount = Integer.parseInt(token);
             return amount < 1 || amount > ExchangeService.MAX_AMOUNT ? 0 : amount;
-
         } catch (NumberFormatException exception) {
             return 0;
         }
@@ -160,17 +156,13 @@ public class AmountSelectionService {
      * @return количество либо {@link ExchangeService#AMOUNT_ALL}
      */
     public static int parse(@NotNull String token) {
-
         int amount = parseAmount(token);
         return amount == 0 ? 1 : amount;
-
     }
 
     private @NotNull List<String> options() {
-
         AmountSettings settings = config.getAmount();
         return settings.amounts().isEmpty() ? List.of(TOKEN_ALL) : settings.amounts();
-
     }
 
     private int indexOf(@NotNull List<String> amounts, int amount) {

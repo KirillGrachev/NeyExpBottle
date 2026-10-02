@@ -49,10 +49,8 @@ public class ReloadSubCommand extends AdminSubCommand {
                     + ", skull textures: " + context.services().getSkullTextureService().getWorkingStrategy());
 
         } catch (Exception exception) {
-
             context.messages().send(sender, MessageKey.RELOAD_ERROR);
             context.services().getDiagnosticsService().severe("Error while reloading configuration:", exception);
-
         }
 
     }

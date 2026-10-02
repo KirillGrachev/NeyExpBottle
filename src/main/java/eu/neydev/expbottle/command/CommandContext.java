@@ -46,10 +46,8 @@ public class CommandContext {
     }
 
     public @NotNull String author() {
-
         List<String> authors = plugin.getDescription().getAuthors();
         return authors.isEmpty() ? "Ney" : String.join(", ", authors);
-
     }
 
     /**

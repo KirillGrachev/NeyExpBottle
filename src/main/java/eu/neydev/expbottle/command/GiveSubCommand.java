@@ -130,11 +130,9 @@ public class GiveSubCommand extends AdminSubCommand {
             return levels;
 
         } catch (NumberFormatException exception) {
-
             context.messages().send(sender, MessageKey.INVALID_TIER,
                     Placeholders.create().set("tier", raw));
             return -1;
-
         }
 
     }

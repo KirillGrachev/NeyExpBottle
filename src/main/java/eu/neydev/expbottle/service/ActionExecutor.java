@@ -47,7 +47,6 @@ public class ActionExecutor {
                           @NotNull SoundService soundService, @NotNull ExchangeService exchangeService,
                           @NotNull PlaceholderService placeholderService, @NotNull BottleRegistry bottleRegistry,
                           @NotNull DiagnosticsService diagnosticsService, @NotNull CooldownService cooldownService) {
-
         this.config = config;
         this.messageService = messageService;
         this.soundService = soundService;
@@ -56,7 +55,6 @@ public class ActionExecutor {
         this.bottleRegistry = bottleRegistry;
         this.diagnosticsService = diagnosticsService;
         this.cooldownService = cooldownService;
-
     }
 
     /**
@@ -85,11 +83,9 @@ public class ActionExecutor {
      */
     public void execute(@NotNull Player player, @NotNull List<ClickAction> actions,
                         @NotNull Placeholders placeholders) {
-
         for (ClickAction action : actions) {
             execute(player, action, placeholders);
         }
-
     }
 
     /**
@@ -180,6 +176,7 @@ public class ActionExecutor {
 
             messageService.send(player, MessageKey.BOTTLE_CREATED, placeholders);
             soundService.play(player, config.getExchangeSound());
+
             return;
 
         }

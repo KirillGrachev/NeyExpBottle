@@ -102,6 +102,7 @@ public class BottleRegistry {
 
         List<String> ids = new ArrayList<>(tiersById.keySet());
         Collections.sort(ids);
+
         return ids;
 
     }

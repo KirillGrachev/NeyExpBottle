@@ -397,9 +397,8 @@ class ServiceCoverageTest extends PluginTestHarness {
         diagnostics.severe("error", new IllegalStateException("test"));
         diagnostics.suspicious("suspicious");
 
-        long elapsed = diagnostics.measure(() -> {
-            // пустая задача
-        });
+        long elapsed = diagnostics.measure(() -> {});
+
         assertTrue(elapsed >= 0);
 
         diagnostics.incrementBottlesCreated();
@@ -628,12 +627,10 @@ class ServiceCoverageTest extends PluginTestHarness {
     }
 
     private void sleep(long millis) {
-
         try {
             Thread.sleep(millis);
         } catch (InterruptedException exception) {
             Thread.currentThread().interrupt();
         }
-
     }
 }

@@ -58,6 +58,7 @@ public class MenuRegistry {
 
         List<String> names = new ArrayList<>(menus.keySet());
         Collections.sort(names);
+
         return names;
 
     }

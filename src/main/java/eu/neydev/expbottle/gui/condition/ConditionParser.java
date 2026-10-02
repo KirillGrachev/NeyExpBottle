@@ -177,6 +177,7 @@ public final class ConditionParser {
 
         String value = source.substring(start, position);
         position++;
+
         return value;
 
     }

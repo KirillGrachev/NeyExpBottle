@@ -96,12 +96,10 @@ public class PlaceholderService {
      * @return готовый шаблон подсказки (цвета ещё не применены)
      */
     private @NotNull String amountHint(@NotNull String label, @NotNull String allLabel) {
-
         return Placeholders.create()
                 .set("amount_label", label)
                 .set("all_label", allLabel)
                 .apply(config.getAmount().hint());
-
     }
 
     /**
@@ -140,13 +138,10 @@ public class PlaceholderService {
      * @return true если правый клик переключает количество
      */
     private boolean cycleEnabled(@NotNull String menuName) {
-
         boolean global = config.getAmount().cycleOnRightClick();
-
         return menuRegistry.byName(menuName)
                 .map(definition -> definition.cycleEnabled(global))
                 .orElse(global);
-
     }
 
     /**
@@ -156,14 +151,11 @@ public class PlaceholderService {
      * @return набор значений
      */
     public @NotNull Placeholders forLevels(int levels) {
-
         int experience = ExperienceFormula.expFromLevels(levels);
-
         return Placeholders.create()
                 .set("levels", levels)
                 .set("exp", experience)
                 .set("required_exp", experience);
-
     }
 
     /**
@@ -176,11 +168,9 @@ public class PlaceholderService {
      */
     public @NotNull Placeholders forTier(int levels, @NotNull String tierId,
                                          @NotNull ExchangeOutcome availability) {
-
         return forLevels(levels)
                 .set("tier", tierId)
                 .set("available", availableText(availability));
-
     }
 
     /**
@@ -211,14 +201,12 @@ public class PlaceholderService {
      * @return набор значений
      */
     public @NotNull Placeholders forStatistics() {
-
         return Placeholders.create()
                 .set("created", diagnosticsService.getBottlesCreated())
                 .set("used", diagnosticsService.getBottlesUsed())
                 .set("denied", diagnosticsService.getExchangesDenied())
                 .set("suspicious", diagnosticsService.getSuspiciousEvents())
                 .set("menus_opened", diagnosticsService.getMenusOpened());
-
     }
 
     /**

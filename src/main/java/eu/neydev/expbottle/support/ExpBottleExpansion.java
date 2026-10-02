@@ -37,10 +37,8 @@ public class ExpBottleExpansion extends PlaceholderExpansion {
 
     @Override
     public @NotNull String getAuthor() {
-
         List<String> authors = plugin.getDescription().getAuthors();
         return authors.isEmpty() ? DEFAULT_AUTHOR : String.join(", ", authors);
-
     }
 
     @Override

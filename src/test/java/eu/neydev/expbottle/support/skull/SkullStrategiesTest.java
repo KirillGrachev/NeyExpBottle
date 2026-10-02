@@ -32,10 +32,8 @@ class SkullStrategiesTest {
 
     @BeforeEach
     void setUp() {
-
         server = MockBukkit.mock();
         primePropertyStub();
-
     }
 
     @AfterEach
@@ -58,11 +56,8 @@ class SkullStrategiesTest {
     @Test
     @DisplayName("The field strategy skips a meta without a GameProfile field")
     void fieldStrategySkipsPlainMeta() throws Exception {
-
         ItemStack result = new GameProfileFieldStrategy().apply(newSkullMeta(), head(), PAYLOAD, "Ney");
-
         assertNull(result);
-
     }
 
     @Test
@@ -86,11 +81,8 @@ class SkullStrategiesTest {
     @Test
     @DisplayName("The reserialized strategy skips a meta without a ResolvableProfile field")
     void reserializedStrategySkipsPlainMeta() throws Exception {
-
         ItemStack result = new ReserializedProfileStrategy().apply(newSkullMeta(), head(), PAYLOAD, "Ney");
-
         assertNull(result);
-
     }
 
     @Test
@@ -182,17 +174,13 @@ class SkullStrategiesTest {
      * Мета с полем типа GameProfile: так скалл-мета выглядела до 1.20.5.
      */
     static class ProfileSkullMeta extends be.seeseemelk.mockbukkit.inventory.meta.SkullMetaMock {
-
         private GameProfile profile;
-
     }
 
     /**
      * Мета с полем типа ResolvableProfile: так скалл-мета выглядит с 1.20.5.
      */
     static class ResolvableSkullMeta extends be.seeseemelk.mockbukkit.inventory.meta.SkullMetaMock {
-
         private ResolvableProfile resolvable;
-
     }
 }

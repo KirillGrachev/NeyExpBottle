@@ -49,7 +49,6 @@ class SignatureUtilFailTest {
         File dataFolder = new File(parentAsFile, "data");
 
         byte[] secret = SignatureUtil.loadOrCreateSecret(dataFolder, LOGGER);
-
         assertEquals(32, secret.length, "The key lives in memory even when it cannot be saved");
 
     }

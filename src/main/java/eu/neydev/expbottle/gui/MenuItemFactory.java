@@ -8,7 +8,6 @@ import eu.neydev.expbottle.service.AmountSelectionService;
 import eu.neydev.expbottle.service.ExchangeService;
 import eu.neydev.expbottle.service.PlaceholderService;
 import eu.neydev.expbottle.service.SkullTextureService;
-import eu.neydev.expbottle.service.PluginServices;
 import eu.neydev.expbottle.util.ItemBuilder;
 import eu.neydev.expbottle.util.Placeholders;
 import org.bukkit.enchantments.Enchantment;

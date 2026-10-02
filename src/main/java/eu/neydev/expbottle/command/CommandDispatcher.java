@@ -23,11 +23,9 @@ public class CommandDispatcher {
 
             // Недостижимо в тестах: команды объявлены в plugin.yml
             if (pluginCommand == null) {
-
                 plugin.getLogger().warning("Command /" + command.getCommandName()
                         + " is not declared in plugin.yml - skipping");
                 continue;
-
             }
 
             pluginCommand.setExecutor(command);

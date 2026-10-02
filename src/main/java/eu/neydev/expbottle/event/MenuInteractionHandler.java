@@ -53,7 +53,6 @@ public class MenuInteractionHandler {
                                   @NotNull PlaceholderService placeholderService, @NotNull ExchangeService exchangeService,
                                   @NotNull DiagnosticsService diagnosticsService, @NotNull MenuService menuService,
                                   @NotNull AmountSelectionService amountSelectionService) {
-
         this.config = config;
         this.actionExecutor = actionExecutor;
         this.messageService = messageService;
@@ -63,7 +62,6 @@ public class MenuInteractionHandler {
         this.diagnosticsService = diagnosticsService;
         this.menuService = menuService;
         this.amountSelectionService = amountSelectionService;
-
     }
 
     /**
@@ -102,29 +100,23 @@ public class MenuInteractionHandler {
         }
 
         if (!isInteractive(item, event.getClick())) {
-
             diagnosticsService.debug("Click " + event.getClick() + " on '" + item.getId() + "' ignored");
             return;
-
         }
 
         // ПКМ по кнопке обмена управляет количеством, если переключение разрешено:
         // вариант переключается прямо на кнопке, обмен при этом не происходит.
         // При выключенном переключании правый клик ведёт себя как обычный
         if (item.getType() == MenuItemType.TIER && event.getClick().isRightClick() && cycleEnabled(menu)) {
-
             cycleAmount(player, menu);
             return;
-
         }
 
         Placeholders placeholders = placeholdersFor(player, menu.getName(), item, menu.getContext());
 
         if (!item.getClickRequirement().evaluate(placeholders)) {
-
             handleDenial(player, item, placeholders);
             return;
-
         }
 
         actionExecutor.execute(player, resolveActions(item), placeholders);

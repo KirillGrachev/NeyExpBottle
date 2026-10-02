@@ -59,12 +59,10 @@ class ExperienceFormulaTest {
     @Test
     @DisplayName("toNextLevel matches a brute force over the whole supported range")
     void toNextLevelMatchesBruteForce() {
-
         for (int level = 0; level <= 5000; level++) {
             assertEquals(bruteToNextLevel(level), ExperienceFormula.toNextLevel(level),
                     "Mismatch at level " + level);
         }
-
     }
 
     @Test
@@ -136,26 +134,19 @@ class ExperienceFormulaTest {
     @Test
     @DisplayName("progressOf is always within 0.0 - 1.0")
     void progressIsAlwaysInRange() {
-
         for (int experience = 0; experience <= 500_000; experience += 37) {
-
             float progress = ExperienceFormula.progressOf(experience);
-
             assertTrue(progress >= 0.0f && progress <= 1.0f,
                     "Progress out of range at experience " + experience + ": " + progress);
-
         }
-
     }
 
     @Test
     @DisplayName("At zero progress the experience bar is empty")
     void progressIsZeroAtLevelStart() {
-
         for (int level = 0; level <= 500; level++) {
             assertEquals(0.0f, ExperienceFormula.progressOf(ExperienceFormula.totalAtLevel(level)));
         }
-
     }
 
     @Test
@@ -201,11 +192,9 @@ class ExperienceFormulaTest {
     @Test
     @DisplayName("expFromLevels counts the cost of levels from zero")
     void expFromLevelsMatchesBruteForce() {
-
         for (int levels = 0; levels <= 500; levels++) {
             assertEquals(bruteTotalAtLevel(levels), ExperienceFormula.expFromLevels(levels));
         }
-
     }
 
     @Test
@@ -213,10 +202,8 @@ class ExperienceFormulaTest {
     void formulasAreMonotonicAndSafe() {
 
         for (int level = 0; level < ExperienceFormula.MAX_LEVEL; level++) {
-
             assertTrue(ExperienceFormula.totalAtLevel(level + 1) > ExperienceFormula.totalAtLevel(level),
                     "Monotonicity is violated at level " + level);
-
         }
 
         assertTrue(ExperienceFormula.totalAtLevel(ExperienceFormula.MAX_LEVEL) > 0);

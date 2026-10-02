@@ -39,7 +39,6 @@ public class CraftProfilePropertiesStrategy implements SkullApplyStrategy {
         }
 
         GameProfileFactory.putTextureProperty(gameProfile, payload);
-
         return SkullOwnerWriter.setOwnerProfile(meta, profile) ? item : null;
 
     }

@@ -28,10 +28,8 @@ class ItemBuilderGlowTest {
 
     @BeforeEach
     void setUp() {
-
         server = MockBukkit.mock();
         registerMockEnchantment("glow_probe", "UNBREAKING");
-
     }
 
     @AfterEach
